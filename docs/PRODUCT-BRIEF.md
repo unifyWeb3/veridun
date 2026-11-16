@@ -4,6 +4,8 @@
 
 The weakest part is not the policy logic; it is the boundary between our locally valid proof and the platform’s unpublished task-ID encoding and live finality evidence. The event publishes the circuit artifacts but not the exact field conversion for `task_id`, and the official task payload contains an on-chain proof reference rather than the proof bytes. Veridun therefore treats those boundaries as configurable, observable, and fail-closed. A local proof is never described as platform-verified until official practice confirms it.
 
+The second weakest part is evidence maturity: the service is live and externally verified, but no official practice round has yet been run against it, because registration and the rotated HMAC secret are operator actions. Every claim below is labelled with that distinction.
+
 ## Product name
 
 **Veridun** is a single invented word. It evokes a guarded threshold without borrowing the event name. A GitHub repository-name search for the exact word returned zero matching repositories on 2026-11-15, compared with generic candidates such as “ProofGatekeeper” that are highly likely to collide. This is a practical collision check, not trademark clearance.
@@ -42,7 +44,8 @@ Veridun turns the endpoint into an auditable decision service:
 
 ## Constraints
 
-- Public HTTPS endpoint with no cold sleep.
+- Public HTTPS endpoint with no cold sleep. Veridun is live on Vercel at
+  `https://veridun-oxunify.vercel.app`.
 - Signed requests and responses using the platform-issued HMAC secret.
 - HMAC verification over the raw body before parsing.
 - Structured `decision` and `reason_code` response; proof and 13 public signals on every provable task.
@@ -69,10 +72,11 @@ Doing nothing forfeits every task and loses the entry’s evidence value. A memo
 
 | Claim | Label | Evidence | Confidence |
 | --- | --- | --- | --- |
-| The official circuit is Groth16/BN128 with 13 public signals and 647 variables. | Verified | Exported official proving key and verification key; SHA-256 values recorded in `docs/EVENT-RULES.md`. | High |
+| The official circuit is Groth16/BN128 with 13 public signals and 647 variables. | Verified | Generated registry `docs/CLAIMS.md` (proving-key header and exported verification key); `npm run circuit:info` confirms the registered VK hash against the official endpoint. | High |
 | The circuit input names are camelCase signals recovered by independent artifact probes. | Verified locally | Local witness/proof test against the official WASM/ZKEY; implementation additionally pins the public-signal order. | High locally, pending official practice |
 | A task ID ending in a UUID is encoded as the 128-bit UUID suffix in the circuit field. | Assumed | Independent implementations and live artifact behavior point to this conversion; the official build guide does not publish it. | Medium |
-| The inbound `proof_tx` is finalized before approval. | Assumed unless live-checked | The task references a chain transaction, but no public read API key is available. Veridun can inspect the public Subscan-rendered extrinsic. | Medium |
+| The inbound `proof_tx` is finalized before approval. | Verified against the public chain for a known extrinsic; asserted for every live task | `tests/inbound-proof.live.test.ts` confirms finality, `ProofVerified`, the submitted VK, and public-input evidence through the public zkVerify RPC; the same checks run on every approval path in production. | High |
+| The service is live and reachable without authentication. | Verified | Unauthenticated external probe of `/`, `/health`, `/api/summary`, `/api/tasks`, `/api/proofs`, and `POST /agent` recorded in `docs/CLAIMS.md`. | High |
 | Durable PostgreSQL replay protection improves competition reliability over a memory set. | Proposed | Database constraints and failure-recovery tests implement the mechanism; competition outcome is unmeasured. | High mechanism / low outcome |
 | The dashboard helps an operator diagnose a missed task quickly. | Proposed | The operational hierarchy and evidence fields are designed for this; no operator usability study has been run. | Medium-low |
 
@@ -88,4 +92,5 @@ Doing nothing forfeits every task and loses the entry’s evidence value. A memo
 | No false proof | Circuit enforcement test | An APPROVE witness on a trap must fail witness generation. |
 | Kurier integration | `src/agent/kurier.ts` | Contract test for submit/poll mapping; live finalization pending key. |
 | Operational dashboard | `web/` | Browser check of loading, empty, populated, and failure states. |
+| Live deployment | Vercel project `veridun` + Neon | `npm run claims -- --live https://veridun-oxunify.vercel.app` |
 | Clean checkout | npm workspace + Docker | Install, migrate, test, build, and health check from a clean dependency directory. |

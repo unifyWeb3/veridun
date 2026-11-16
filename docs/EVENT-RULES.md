@@ -1,6 +1,8 @@
 # Event rules and gates
 
-_Last verified against official Agent Games pages on 2026-11-15. This file is the submission specification; update it when the platform or deployment state changes._
+_Last verified against official Agent Games pages on 2026-11-15, and against the live deployment on 2026-11-16. This file is the submission specification; update it when the platform or deployment state changes._
+
+Machine-generated values (circuit digests, VK hash, toolchain versions, live endpoint probe) are produced by `npm run claims` into `docs/CLAIMS.md` and are not transcribed here.
 
 ## Event
 
@@ -41,10 +43,10 @@ The event publishes point deltas rather than percentage weights. They are used a
 | Project name | Veridun | `README.md` and package metadata | Ready |
 | One-line claim (vision) | Every proof-backed payment decision leaves a durable, inspectable trail. | `README.md` | Ready |
 | Description | Veridun is a production-oriented Proof Gatekeeper agent and proof-operations dashboard with deterministic policy, durable replay protection, local Groth16 proofs, zkVerify/Kurier integration, and auditable evidence. | `README.md` | Ready |
-| Live app URL | Pending deployment authorization and hosting selection | — | Open |
-| Repository URL | Pending user-created GitHub repository | — | Open |
-| Repository revision submitted | Pending | — | Open |
-| Contract address(es) | None; this track uses the platform-registered Groth16 key `0x6b79c6012a6d8651f3e13bc4d2a20370280ab49700c90c5316d4168bfbad77b0` | Official circuit-info endpoint | Ready |
+| Live app URL | `https://veridun-oxunify.vercel.app/` (agent endpoint: `https://veridun-oxunify.vercel.app/agent`) | `npm run claims -- --live https://veridun-oxunify.vercel.app` | Ready |
+| Repository URL | `https://github.com/unifyWeb3/veridun` | Repository `origin` | Ready |
+| Repository revision submitted | `main` at the commit that produced the current production deployment (recorded in the deployment metadata and in `docs/CLAIMS.md` generation log) | `git rev-parse HEAD` | Ready |
+| Contract address(es) | None; this track uses the platform-registered Groth16 key recorded in `docs/CLAIMS.md` | Official circuit-info endpoint | Ready |
 | Example transaction hash | Pending official practice/Kurier finalization | — | Open |
 | Explorer link | Pending example transaction | — | Open |
 | Video URL | Not required by the Proof Gatekeeper page; pending optional demo | — | Open |
@@ -58,10 +60,10 @@ The event publishes point deltas rather than percentage weights. They are used a
 | Requirement | Met | Evidence |
 | --- | --- | --- |
 | Built with the required tool | Yes | TypeScript/Node.js, official Circom 2.x artifacts, Groth16/BN128. |
-| Deployed to the target network | Pending | Deployment has not been authorized or performed. |
+| Deployed to the target network | Yes for the service; the event itself has no contract deployment | The agent is live on Vercel (`https://veridun-oxunify.vercel.app/agent`) against the mainnet event circuit and the mainnet zkVerify chain. |
 | Real value moved through the contract and the app | Not applicable to Proof Gatekeeper scoring | The track verifies decision proofs; the task payload does not move user funds. |
-| Not testnet-only | Pending | The event circuit and registered key are mainnet; the live agent endpoint is pending. |
-| Not a mockup, deck, or design | Yes in implementation | Executable service, PostgreSQL persistence, proof harness, and dashboard are included. |
+| Not testnet-only | Yes | The event circuit and registered key are mainnet, the Kurier endpoint is mainnet, and the live agent verifies inbound mainnet finality. |
+| Not a mockup, deck, or design | Yes in implementation | Executable service, PostgreSQL persistence, proof harness, live deployment, and dashboard are included. |
 | Not already funded by a sponsor program | Yes | No funding is recorded. |
 | Work is ours, or we have the right to submit it | Yes | Original implementation based on the published protocol and public circuit artifacts. |
 | Jurisdiction and sanctions eligibility | User-managed | Not documented in the public event rules; the registered profile governs eligibility. |
@@ -71,19 +73,19 @@ The event publishes point deltas rather than percentage weights. They are used a
 
 | Field | Value |
 | --- | --- |
-| Toolchain and version | Node.js 24.22.2; npm 11.19.1 |
+| Toolchain and version | Generated in `docs/CLAIMS.md` (Node.js engine `24.x`, npm, and resolved dependency versions) |
 | Compiler version | Circom 2.x official artifact (the event does not publish the exact patch version) |
 | Optimizer / runs | Official published proving key; not recompiled |
 | EVM target | Not applicable |
 | `viaIR` | Not applicable |
-| Artifact path in repository | `artifacts/circuit/gatekeeper.wasm`, `artifacts/circuit/gatekeeper_final.zkey`; downloaded and checksum-verified by `scripts/prepare-circuit.sh` |
+| Artifact path in repository | `artifacts/circuit/gatekeeper.wasm`, `artifacts/circuit/gatekeeper_final.zkey`; downloaded and checksum-verified by `scripts/prepare-circuit.mjs` |
 | Artifact keccak-256 | Not generated; SHA-256 integrity is the reproducible source of truth |
-| Artifact byte length | Recorded by the preparation script in `artifacts/circuit/checksums.txt` |
+| Artifact byte length | Recorded in `docs/CLAIMS.md` and in `artifacts/circuit/checksums.txt` |
 | Deployment transaction and block | Not applicable before deployment; Kurier proof transactions are recorded per task |
 | On-chain runtime keccak-256 | Not applicable |
 | On-chain byte length | Not applicable |
 | Comparison result | Local proof verification must pass against the verification key exported from the official proving key |
-| Test suite re-run against this configuration (date, output file) | Pending final run; command is `npm test` |
+| Test suite re-run against this configuration (date, output file) | `npm test` re-run on 2026-11-16: 51 passed, 1 skipped (live zkVerify test is opt-in) |
 
 ## Headline claim enforcement
 
@@ -100,8 +102,8 @@ The event publishes point deltas rather than percentage weights. They are used a
 | Limitation | Does it negate the headline claim? | Action |
 | --- | --- | --- |
 | Official practice has not yet validated the platform’s expected task-ID field encoding | No; the circuit proof remains cryptographically valid, but public-signal semantics could be rejected | `TASK_ID_ENCODING` supports `auto`, `hex-suffix`, `sha256`, and `keccak256`; validate in practice mode before a scored round. |
-| Live hosting is not selected or authorized | No for the implementation, but yes for “live” | Do not claim public availability until an unauthenticated external fetch succeeds. |
-| Inbound proof-reference finality uses the public Subscan-rendered page because no public read API key is available | No | Keep finality checks explicit and observable; replace with a keyed/indexer API if credentials are supplied. |
+| Live hosting is live, but no official practice round has been scored yet | No for the implementation; yes for "platform-verified" claims | The service is externally verified; a practice round is an operator action. Do not describe a locally verified proof as platform-verified until the platform confirms it. |
+| Inbound proof-reference finality uses the public zkVerify RPC and the public Subscan-rendered page because no public read API key is available | No | Keep finality checks explicit and observable; replace with a keyed/indexer API if credentials are supplied. |
 
 ## Value-moving branch coverage
 
@@ -142,19 +144,20 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 | Item | Value |
 | --- | --- |
 | Surface type (CLI, SDK, API) | HTTPS API + operational web dashboard |
-| Command or endpoint | `POST /agent`; `GET /health`; dashboard API under `/api/*` |
+| Command or endpoint | `POST /agent`; `GET /health`; dashboard API under `/api/*` (`/api/summary`, `/api/tasks`, `/api/task?task_id=…`, `/api/proofs`) |
 | Required environment | `AGENT_GAMES_HMAC_SECRET`, `DATABASE_URL`; `KURIER_API_KEY` for mainnet finalization evidence |
 | Output that proves it works | Signed preflight; decision response; Groth16 proof; 13 public signals; local verification result; Kurier job/finalization metadata |
 | How the output is checked against the chain or service | `snarkjs.groth16.verify` locally and Kurier `Finalized` status when configured |
-| Clean-checkout run confirmed | Pending final verification run |
+| Clean-checkout run confirmed | `npm ci && npm run circuit:prepare && npm test && npm run build` passes on Node 24 |
 
 ## Evidence table
 
 | Step | Actor | Transaction | Link | Observed result |
 | --- | --- | --- | --- | --- |
 | Official artifact download | Builder | Not applicable | https://agentgames.zkverify.io/api/circuit-info | WASM and ZKEY SHA-256 values verified |
-| Local proof test | Builder | Not applicable | `npm run test:proof` | Pending final run |
-| Official preflight | User/operator | Not applicable | Agent Games dashboard | Pending account/session |
+| Local proof test | Builder | Not applicable | `npm run test:proof` | Groth16 proof generated and locally verified against the exported official key |
+| Live deployment probe | Builder | Not applicable | `npm run claims -- --live https://veridun-oxunify.vercel.app` | `/` 200 HTML; `/health` 200 JSON with `database=ready`; `/api/summary`, `/api/tasks`, `/api/proofs` 200 JSON; `POST /agent` unsigned → signed 401 `INVALID_SIGNATURE` |
+| Signed preflight against the live deployment | User/operator | Not applicable | `npm run preflight -- https://veridun-oxunify.vercel.app <agent-id>` | Pending operator secret and agent id |
 | Official practice task | User/operator | Pending | Agent Games dashboard | Pending account/session |
 
 ## Pre-submission gate results
@@ -162,17 +165,17 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 | Gate | Result | Note |
 | --- | --- | --- |
 | A1 on-chain runtime equals committed artifact | N/A | No custom contract; official circuit checksums are the artifact identity. |
-| A2 verification script exits zero against live deployment | Pending | Requires live endpoint. |
-| A3 one toolchain and configuration for test, build, deploy | Pass locally | Root npm workspace and Docker image use the same TypeScript build. |
-| A4 suite re-run against the deployed configuration | Pending | Requires live endpoint. |
-| A5 no required form field empty | Pending | Several event-specific fields require the user account and deployment. |
+| A2 verification script exits zero against live deployment | Pass | `npm run claims -- --live https://veridun-oxunify.vercel.app` records HTTP 200 on every read endpoint and a signed 401 on an unsigned `POST /agent`. |
+| A3 one toolchain and configuration for test, build, deploy | Pass | Root npm workspace; CI and Vercel both run Node 24; the same TypeScript sources build the API and the dashboard. |
+| A4 suite re-run against the deployed configuration | Pass | `npm test` re-run on 2026-11-16 after the deployment fix: 51 passed, 1 skipped. |
+| A5 no required form field empty | Partial | Live URL, repository URL, and revision are filled; the example transaction hash and explorer link remain open until a practice round finalizes a Kurier proof. |
 | A6 video public and shows the required build and transaction | Pending | Optional for this track. |
 | A7 every headline claim enforced | Pass locally | See headline claim table. |
 | A8 every value-moving branch has a test and a status | Pass locally | Seven decision branches are covered; statuses are explicit. |
-| A9 every factual number comes from the claims registry | In progress | Runtime metrics are queried from PostgreSQL, not hard-coded. |
-| A10 every evidence link opens and shows what it claims | In progress | Official links verified; live links pending. |
-| A11 software surface runs from a clean checkout | Pending | Final clean-install run required. |
-| A12 network labels correct everywhere | Pass locally | Mainnet is explicit for the event circuit and Kurier endpoint. |
+| A9 every factual number comes from the claims registry | Pass | `docs/CLAIMS.md` is generated by `npm run claims`; runtime metrics are queried from PostgreSQL, not hard-coded. |
+| A10 every evidence link opens and shows what it claims | Pass | Official circuit endpoint and the live deployment were fetched unauthenticated on 2026-11-16. |
+| A11 software surface runs from a clean checkout | Pass | `npm ci`, circuit preparation, tests, and build all pass on a clean dependency tree. |
+| A12 network labels correct everywhere | Pass | Mainnet is explicit for the event circuit and Kurier endpoint. |
 
 ## Competitive field
 
@@ -192,14 +195,14 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 
 | Item | Value |
 | --- | --- |
-| Deployment target and plan | Pending explicit deployment authorization. The repository is Docker-first and supports a persistent Node service plus PostgreSQL; a sleeping/serverless target is not acceptable because the platform penalizes timeouts. |
-| Public URL and subdomain | Pending |
-| Verified limits that matter for this build | Required: public HTTPS, no cold sleep, persistent PostgreSQL, at least 60-second request handling with a 55-second internal budget, and enough CPU for a roughly one-second Groth16 proof. |
-| Restriction that could bite (commercial use, build caps, timeouts) | Free serverless and sleep-on-idle plans can forfeit tasks; serverless CPU/runtime limits can also interrupt proof generation. |
-| Recurring cost and who pays | Pending hosting selection; the user pays. No sponsor allowance is documented. |
+| Deployment target and plan | Vercel project `veridun`, connected to `https://github.com/unifyWeb3/veridun` for automatic deploys on `main`. Static dashboard plus one catch-all serverless function (60 s max duration, 2048 MB). PostgreSQL is Neon through the Vercel Marketplace integration. |
+| Public URL and subdomain | `https://veridun.vercel.app`, `https://veridun-oxunify.vercel.app`, `https://veridun-git-main-oxunify.vercel.app` |
+| Verified limits that matter for this build | Required: public HTTPS, no cold sleep, persistent PostgreSQL, at least 60-second request handling with a 55-second internal budget, and enough CPU for a roughly one-second Groth16 proof. The function is pinned to Node 24.x. |
+| Restriction that could bite (commercial use, build caps, timeouts) | Serverless CPU/runtime limits can interrupt proof generation; the function therefore enforces a 55-second internal budget and returns a signed rejection instead of timing out. |
+| Recurring cost and who pays | The user pays. Vercel and Neon free tiers cover this workload; no sponsor allowance is documented. |
 | Sponsor allowance, if any, source, expiry, how to claim | None documented. |
-| Environment variables and where their values come from | `AGENT_GAMES_HMAC_SECRET` from Agent Games → Rotate Secret; `KURIER_API_KEY` from kurier.xyz; `DATABASE_URL` from the selected PostgreSQL host. |
-| Verified how, and on what date | Protocol facts verified 2026-11-15; hosting limits not yet selected or verified. |
+| Environment variables and where their values come from | `AGENT_GAMES_HMAC_SECRET` from Agent Games → Rotate Secret; `KURIER_API_KEY` from kurier.xyz; `DATABASE_URL` from the Neon Marketplace integration; the remaining configuration values are set in the project settings. |
+| Verified how, and on what date | Protocol facts verified 2026-11-15; hosting and runtime verified against the live deployment on 2026-11-16. |
 
 ## Benchmark and gap routing
 
@@ -233,7 +236,6 @@ Anything unresolved that could change scope, cost, permission, or the outcome.
 
 | Question | Owner | Needed by | Status |
 | --- | --- | --- | --- |
-| Which persistent hosting target and budget should be used? | User | Before deployment | Open |
-| What is the exact public task-ID form in scored rounds, and which field encoding does the platform expect? | Builder + official practice | Before first scored round | Open; configurable encodings implemented |
+| What is the exact public task-ID form in scored rounds, and which field encoding does the platform expect? | Builder + official practice | Before first scored round | Open; configurable encodings implemented, `auto` selected |
 | Does the platform expect `proof_tx` to echo the incoming proof or point to our Kurier proof? | Builder + official practice | Before first scored round | Open; incoming reference is retained while our finalization is stored separately |
-| What are the Agent Games dashboard account, Kurier key, and registered GitHub repository? | User | Before deployment/practice | Open |
+| What are the Agent Games dashboard account, agent id, and the rotated HMAC secret? | User | Before registration and practice | Open — the live deployment already has a secret set; the operator must confirm it matches the rotated value |

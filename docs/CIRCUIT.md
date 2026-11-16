@@ -2,20 +2,24 @@
 
 ## Official artifacts
 
-| Artifact | SHA-256 |
-| --- | --- |
-| `gatekeeper.wasm` | `be00aefe3c8ba910951a242f50e55937bf82a0375ad4b69c2ef10629ab92764f` |
-| `gatekeeper_final.zkey` | `adfe95a439a7063a82a4967ef026d2dd6857a4d02c63b3caf63dac02e01af80d` |
+The authoritative digests, byte lengths, registered VK hash, and verification-key
+properties are generated into [`CLAIMS.md`](CLAIMS.md) by `npm run claims`. That
+file is the single source of truth; the values are not transcribed here.
 
-Registered mainnet verification-key hash:
+`scripts/prepare-circuit.mjs` downloads both official artifacts, verifies their
+SHA-256 digests, and exports the verification key used by local proof checks.
+`npm run circuit:verify` re-checks the same identities, and `npm run
+circuit:info` re-reads the registered VK hash from the official endpoint and
+fails if it changed.
 
-`0x6b79c6012a6d8651f3e13bc4d2a20370280ab49700c90c5316d4168bfbad77b0`
-
-`scripts/prepare-circuit.sh` downloads both artifacts, verifies these hashes, and exports the verification key used by local proof checks.
+The circuit is Circom 2.x Groth16/BN128 with 13 public inputs plus one output,
+and 13 public signals in the response.
 
 ## Recovered interface
 
-The official artifact is a Circom 2.x Groth16/BN128 circuit with 647 variables, 13 public inputs plus one output, and 13 public signals in the response.
+The official artifact is a Circom 2.x Groth16/BN128 circuit whose proving key
+reports 647 variables and 13 public inputs. The response carries 13 public
+signals.
 
 Input names recovered by independent probes of the WASM signal map:
 
@@ -82,6 +86,15 @@ Therefore:
 | task ID without UUID suffix | configurable: SHA-256, Keccak-256, or auto fallback |
 
 The task-ID conversion is the only materially undocumented part of the official protocol. `auto` uses a UUID suffix when present and SHA-256 otherwise. Official practice mode is the acceptance test; `docs/EVENT-RULES.md` keeps this as an open gate.
+
+## Deployment of the artifacts
+
+`npm run circuit:prepare` runs as the first step of the Vercel build
+(`buildCommand: npm run build:vercel`). It downloads the official artifacts into
+`artifacts/circuit/`, verifies their checksums, and exports
+`gatekeeper_vkey.json`. `vercel.json` bundles `artifacts/circuit/**` into the
+serverless function with `includeFiles`, so the deployed function can prove
+without network access.
 
 ## Salt
 

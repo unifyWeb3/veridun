@@ -24,7 +24,9 @@
     "db:seed:demo": "node scripts/seed-demo.mjs",
     "circuit:prepare": "node scripts/prepare-circuit.mjs",
     "circuit:verify": "node scripts/verify-circuit.mjs",
-    "circuit:info": "node scripts/circuit-info.mjs"
+    "circuit:info": "node scripts/circuit-info.mjs",
+    "claims": "node scripts/claims.mjs",
+    "preflight": "node scripts/preflight.mjs"
   },
   "dependencies": {
     "@fastify/static": "^8.2.0",

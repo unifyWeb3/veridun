@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: veridun
+      POSTGRES_USER: veridun
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridun-local-only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - veridun_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veridun -d veridun"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AGENT_GAMES_HMAC_SECRET: ${AGENT_GAMES_HMAC_SECRET:?set AGENT_GAMES_HMAC_SECRET}
+      DATABASE_URL: postgres://veridun:${POSTGRES_PASSWORD:-veridun-local-only}@db:5432/veridun
+      KURIER_API_KEY: ${KURIER_API_KEY:-}
+      KURIER_API_BASE_URL: ${KURIER_API_BASE_URL:-https://api.kurier.xyz/api/v1}
+      CIRCUIT_DIR: /app/artifacts/circuit
+      TASK_ID_ENCODING: ${TASK_ID_ENCODING:-auto}
+      INBOUND_PROOF_VERIFIER: ${INBOUND_PROOF_VERIFIER:-zkverify}
+      SUBSCAN_BASE_URL: ${SUBSCAN_BASE_URL:-https://zkverify.subscan.io}
+      ZKVERIFY_RPC_URL: ${ZKVERIFY_RPC_URL:-https://zkverify-rpc.zkverify.io}
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DASHBOARD_ENABLED: ${DASHBOARD_ENABLED:-true}
+      PROOF_SUBMIT_ENABLED: ${PROOF_SUBMIT_ENABLED:-true}
+      KURIER_POLL_INTERVAL_MS: ${KURIER_POLL_INTERVAL_MS:-2000}
+      KURIER_FINALITY_TIMEOUT_MS: ${KURIER_FINALITY_TIMEOUT_MS:-30000}
+      REQUEST_BUDGET_MS: ${REQUEST_BUDGET_MS:-55000}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  veridun_pgdata:

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist/api",
+    "rootDir": "src",
+    "sourceMap": true,
+    "declaration": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src/api", "src/agent", "src/config", "src/db", "src/shared", "src/types"],
+  "exclude": ["tests", "web"]
+}

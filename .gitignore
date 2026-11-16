@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+artifacts/circuit/*.wasm
+artifacts/circuit/*.zkey
+artifacts/circuit/*.json
+artifacts/circuit/checksums.txt
+*.log
+.DS_Store
+.vite/
+.tmp/

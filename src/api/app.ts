@@ -16,6 +16,7 @@ import type {
   Prover,
 } from '../agent/contracts.js';
 import { evaluatePolicy, type PolicyCheck } from '../agent/policy.js';
+import { buildCounterfactual } from '../agent/counterfactual.js';
 import { serializeSignedJson, verifyBodySignature } from '../agent/hmac.js';
 import type { AppConfig } from '../config/env.js';
 import type { PostgresTaskRepository } from '../db/repository.js';
@@ -43,6 +44,7 @@ export interface AppDependencies {
     | 'failTask'
     | 'listTasks'
     | 'getTask'
+    | 'getReceipt'
     | 'listProofs'
     | 'dashboardSummary'
   >;
@@ -329,6 +331,45 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   // direct Fastify access.
   app.get('/api/task', taskDetailHandler);
   app.get('/api/tasks/:taskId', taskDetailHandler);
+
+  const receiptHandler = async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as Record<string, unknown>;
+    const taskId = typeof query.task_id === 'string' ? query.task_id : undefined;
+    if (!taskId) {
+      return reply.status(400).send({ error: 'TASK_ID_REQUIRED' });
+    }
+    try {
+      const receipt = await repository.getReceipt(taskId);
+      if (!receipt) return reply.status(404).send({ error: 'TASK_NOT_FOUND' });
+      const envelope = gatekeeperTaskSchema.safeParse(receipt.envelope);
+      const counterfactual =
+        envelope.success && receipt.decision
+          ? buildCounterfactual(
+              envelope.data,
+              receipt.decision,
+              receipt.policyChecks,
+            )
+          : null;
+      return reply.send({
+        ...receipt,
+        counterfactual,
+        verification: {
+          responseSignatureAlgorithm: 'HMAC-SHA256 over the exact response body bytes',
+          proofScheme: 'Groth16 on BN128',
+          verificationKeySource: 'exported from the official gatekeeper proving key',
+          reproduce: 'npm run receipt:verify -- <receipt-file>',
+        },
+      });
+    } catch (error) {
+      requestLogError(app.log, error, 'task receipt failed');
+      return reply.status(503).send({ error: 'RECEIPT_UNAVAILABLE' });
+    }
+  };
+
+  // The receipt is the re-verifiable record of one decision: exact signed
+  // bytes, signature, envelope, checks, and proof evidence.
+  app.get('/api/receipt', receiptHandler);
+  app.get('/api/receipts/:taskId', receiptHandler);
 
   app.get('/api/proofs', async (request, reply) => {
     const query = request.query as Record<string, unknown>;

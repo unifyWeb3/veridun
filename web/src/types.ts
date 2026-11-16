@@ -76,6 +76,30 @@ export interface TaskDetail extends TaskRecord {
   attempts: ProofAttempt[];
 }
 
+export interface TaskReceipt {
+  taskId: string;
+  mode: string;
+  state: string;
+  decision: Decision | null;
+  reasonCode: string | null;
+  durationMs: number | null;
+  requestDigest: string | null;
+  responseBody: string | null;
+  responseSignature: string | null;
+  responseSignatureAlgorithm: string | null;
+  proofScheme: string | null;
+  verificationKeySource: string | null;
+  reproduce: string | null;
+  counterfactual: {
+    decision: Decision | null;
+    note: string | null;
+    wouldHaveApprovedIf: string | null;
+    failingCheckLabel: string | null;
+    amount: string | null;
+    recipient: string | null;
+  } | null;
+}
+
 export interface ProofRecord {
   id: string | null;
   taskId: string | null;

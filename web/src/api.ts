@@ -15,6 +15,7 @@ import type {
   ProofRecord,
   TaskDetail,
   TaskQuery,
+  TaskReceipt,
   TaskRecord,
 } from './types';
 
@@ -631,6 +632,48 @@ export async function getTask(taskId: string, signal?: AbortSignal): Promise<Tas
     signal,
   );
   return normalizeTaskDetail(raw);
+}
+
+export async function getReceipt(taskId: string, signal?: AbortSignal): Promise<TaskReceipt> {
+  const raw = await requestJson(
+    `/api/receipt?task_id=${encodeURIComponent(taskId)}`,
+    signal,
+  );
+  const root = isRecord(raw) ? raw : {};
+  const verification = isRecord(root.verification) ? root.verification : {};
+  const counterfactualRaw = isRecord(root.counterfactual) ? root.counterfactual : null;
+  const valueAtRisk = counterfactualRaw && isRecord(counterfactualRaw.valueAtRisk)
+    ? counterfactualRaw.valueAtRisk
+    : null;
+  const failingCheck =
+    counterfactualRaw && isRecord(counterfactualRaw.failingCheck)
+      ? counterfactualRaw.failingCheck
+      : null;
+  return {
+    taskId: stringAt(root, ['taskId', 'task_id']) ?? taskId,
+    mode: stringAt(root, ['mode']) ?? 'unknown',
+    state: stringAt(root, ['state']) ?? 'unknown',
+    decision: (stringAt(root, ['decision']) as Decision | undefined) ?? null,
+    reasonCode: stringAt(root, ['reasonCode', 'reason_code']),
+    durationMs: numberAt(root, ['durationMs', 'duration_ms']),
+    requestDigest: stringAt(root, ['requestDigest', 'request_digest']),
+    responseBody: stringAt(root, ['responseBody', 'response_body']),
+    responseSignature: stringAt(root, ['responseSignature', 'response_signature']),
+    responseSignatureAlgorithm: stringAt(verification, ['responseSignatureAlgorithm']),
+    proofScheme: stringAt(verification, ['proofScheme']),
+    verificationKeySource: stringAt(verification, ['verificationKeySource']),
+    reproduce: stringAt(verification, ['reproduce']),
+    counterfactual: counterfactualRaw
+      ? {
+          decision: (stringAt(counterfactualRaw, ['decision']) as Decision | undefined) ?? null,
+          note: stringAt(counterfactualRaw, ['note']),
+          wouldHaveApprovedIf: stringAt(counterfactualRaw, ['wouldHaveApprovedIf']),
+          failingCheckLabel: failingCheck ? stringAt(failingCheck, ['label']) : null,
+          amount: valueAtRisk ? stringAt(valueAtRisk, ['amount']) : null,
+          recipient: valueAtRisk ? stringAt(valueAtRisk, ['recipient']) : null,
+        }
+      : null,
+  };
 }
 
 export async function getProofs(query: ProofQuery, signal?: AbortSignal): Promise<ListResponse<ProofRecord>> {

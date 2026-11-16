@@ -9,6 +9,7 @@ import {
   getDashboardSummary,
   getHealth,
   getProofs,
+  getReceipt,
   getTask,
   getTasks,
 } from './api';
@@ -488,7 +489,9 @@ function HashValue({ value }: { value: string | null }) {
 
 function TaskDetailRoute({ taskId }: { taskId: string }) {
   const state = useLiveData((signal) => getTask(taskId, signal), [taskId]);
+  const receiptState = useLiveData((signal) => getReceipt(taskId, signal), [taskId]);
   const task = state.data;
+  const receipt = receiptState.data;
 
   return (
     <>
@@ -629,14 +632,61 @@ function TaskDetailRoute({ taskId }: { taskId: string }) {
             </div>
           </section>
 
+          <section className="panel" aria-labelledby="receipt-heading">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Signed receipt</p>
+                <h2 id="receipt-heading">Re-verify this decision</h2>
+              </div>
+              <StatusBadge tone={receipt?.responseSignature ? 'positive' : 'neutral'}>
+                {receipt?.responseSignature ? 'Signed' : 'Not signed'}
+              </StatusBadge>
+            </div>
+            {receiptState.error ? (
+              <ErrorState message={receiptState.error} onRetry={receiptState.reload} />
+            ) : receipt?.responseBody ? (
+              <DetailList>
+                <DetailItem term="Response bytes" wide>
+                  <span className="hash-value">
+                    <code title={receipt.responseBody}>
+                      {receipt.responseBody.length > 120
+                        ? `${receipt.responseBody.slice(0, 117)}…`
+                        : receipt.responseBody}
+                    </code>
+                    <CopyButton value={receipt.responseBody} />
+                  </span>
+                </DetailItem>
+                <DetailItem term="Signature" wide><HashValue value={receipt.responseSignature} /></DetailItem>
+                <DetailItem term="Signature scheme">{receipt.responseSignatureAlgorithm ?? 'Not reported'}</DetailItem>
+                <DetailItem term="Proof scheme">{receipt.proofScheme ?? 'Not reported'}</DetailItem>
+                <DetailItem term="Verification key" wide>{receipt.verificationKeySource ?? 'Not reported'}</DetailItem>
+                {receipt.counterfactual ? (
+                  <DetailItem term="Value at risk" wide>
+                    {receipt.counterfactual.note ?? 'Not reported'}
+                    {receipt.counterfactual.wouldHaveApprovedIf
+                      ? ` Would have approved if ${receipt.counterfactual.wouldHaveApprovedIf}.`
+                      : ''}
+                  </DetailItem>
+                ) : null}
+                <DetailItem term="Reproduce" wide>
+                  <span className="hash-value"><code>{receipt.reproduce ?? 'npm run receipt:verify -- <receipt-file>'}</code></span>
+                </DetailItem>
+              </DetailList>
+            ) : (
+              <EmptyState
+                title="No signed response retained"
+                description="This task has no stored response bytes yet, so there is nothing to re-verify."
+              />
+            )}
+          </section>
+
           <section className="panel" aria-labelledby="timeline-heading">
             <div className="section-heading">
               <div>
                 <p className="eyebrow">Processing record</p>
                 <h2 id="timeline-heading">Evidence timeline</h2>
               </div>
-            </div>
-            {task.attempts.length ? (
+            </div>            {task.attempts.length ? (
               <ol className="timeline">
                 {task.attempts.map((attempt) => (
                   <li key={attempt.id ?? `${attempt.type}-${attempt.occurredAt}`}>

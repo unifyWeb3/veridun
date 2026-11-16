@@ -330,8 +330,44 @@ export class PostgresTaskRepository {
     };
   }
 
-  async listProofs(limit: number, offset: number): Promise<ProofLedgerItem[]> {
-    const result = await this.#pool.query<ProofRow>(
+  /**
+   * Builds the judge-facing receipt for one task: the exact signed response
+   * bytes, their signature, and every input needed to re-verify the decision
+   * independently (task envelope, policy checks, proof, public signals).
+   */
+  async getReceipt(taskId: string): Promise<TaskReceipt | null> {
+    const result = await this.#pool.query<ReceiptRow>(
+      `SELECT task_id, envelope, state, decision, reason_code, duration_ms,
+              created_at, updated_at, request_digest, policy_checks,
+              inbound_verification, proof, kurier, response_body, response_signature
+       FROM agent_tasks WHERE task_id = $1`,
+      [taskId],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+
+    return {
+      taskId: row.task_id,
+      mode: row.envelope?.mode ?? 'unknown',
+      state: row.state,
+      decision: row.decision,
+      reasonCode: row.reason_code,
+      durationMs: row.duration_ms,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+      requestDigest: row.request_digest,
+      envelope: row.envelope,
+      policyChecks: (row.policy_checks as PolicyCheck[] | null) ?? [],
+      inboundVerification:
+        (row.inbound_verification as InboundProofResult | null) ?? null,
+      proof: (row.proof as ProofBundle | null) ?? null,
+      kurier: (row.kurier as Record<string, unknown> | null) ?? null,
+      responseBody: row.response_body ? row.response_body.toString('utf8') : null,
+      responseSignature: row.response_signature,
+    };
+  }
+
+  async listProofs(limit: number, offset: number): Promise<ProofLedgerItem[]> {    const result = await this.#pool.query<ProofRow>(
       `SELECT task_id, envelope, decision, reason_code, proof, public_signals,
               inbound_verification, kurier, duration_ms, created_at
        FROM agent_tasks
@@ -459,6 +495,30 @@ export interface ProofLedgerItem {
   createdAt: string;
 }
 
+/**
+ * Everything a third party needs to re-verify one decision without trusting
+ * this service: the exact signed response bytes, the signature over them, the
+ * task envelope, the evaluated policy checks, and the proof evidence.
+ */
+export interface TaskReceipt {
+  taskId: string;
+  mode: string;
+  state: TaskState;
+  decision: Decision | null;
+  reasonCode: ReasonCode | null;
+  durationMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+  requestDigest: string;
+  envelope: TaskEnvelopeRow;
+  policyChecks: PolicyCheck[];
+  inboundVerification: InboundProofResult | null;
+  proof: ProofBundle | null;
+  kurier: Record<string, unknown> | null;
+  responseBody: string | null;
+  responseSignature: string | null;
+}
+
 interface StoredTaskRow extends QueryResultRow {
   state: TaskState;
   request_digest: string;
@@ -502,6 +562,11 @@ interface AttemptRow extends QueryResultRow {
 
 interface ProofRow extends TaskRow {
   public_signals: string[] | null;
+}
+
+interface ReceiptRow extends TaskRow {
+  response_body: Buffer | null;
+  response_signature: string | null;
 }
 
 interface TotalsRow extends QueryResultRow {

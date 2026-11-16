@@ -130,6 +130,7 @@ export function testDependencies(
     failTask: async () => undefined,
     listTasks: async () => [],
     getTask: async () => null,
+    getReceipt: async () => null,
     listProofs: async () => [],
     dashboardSummary: async () => ({
       generatedAt: new Date().toISOString(),

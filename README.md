@@ -141,6 +141,7 @@ content-type parsing, and raw-body semantics without the test-only dependency.
 | `GET` | `/api/summary` | Aggregate task, proof, latency, and finalization metrics |
 | `GET` | `/api/tasks` | Paginated task list with decision/reason/status filters |
 | `GET` | `/api/task?task_id=…` | Task detail, policy checks, proof, signals, and attempts |
+| `GET` | `/api/receipt?task_id=…` | Re-verifiable receipt: exact signed response bytes, signature, envelope, checks, proof |
 | `GET` | `/api/proofs` | Proof and Kurier evidence ledger |
 
 `/api/dashboard/summary` and `/api/tasks/:taskId` remain available as aliases
@@ -165,6 +166,41 @@ semantics. A platform retry receives the exact original signed response bytes. A
 concurrent duplicate waits for the first response within the task budget. A
 failed task can be reclaimed by a later retry because proof-reference ownership
 never transfers away from the first task.
+
+---
+
+## Verify a decision without trusting this service
+
+Every completed task keeps a **receipt**: the exact signed response bytes, the
+HMAC over them, the task envelope, the evaluated policy checks, and the proof.
+The receipt is enough to re-derive the decision and re-verify the proof.
+
+```bash
+# a local sample receipt generated with the official circuit artifacts
+npm run receipt:sample
+npm run receipt:verify -- docs/samples/sample-receipt.json
+
+# the receipt of a task the live service processed
+curl "https://veridun-oxunify.vercel.app/api/receipt?task_id=<task-id>" > receipt.json
+AGENT_GAMES_HMAC_SECRET=<secret> npm run receipt:verify -- receipt.json
+```
+
+`npm run receipt:verify` runs seven independent checks and exits non-zero if any
+of them fails:
+
+```text
+PASS  task envelope parses against the published contract
+PASS  decision is present
+PASS  policy replay matches the recorded decision
+PASS  receipt carries 13 public signals
+PASS  public signals match the circuit inputs derived from the envelope
+PASS  Groth16 proof verifies against the official verification key
+PASS  response HMAC over the exact response bytes
+```
+
+The committed sample receipt is explicitly labelled as a local sample: it is
+produced by the same code path as a live task, but it is not a platform-signed
+response and it is not a record of a live Agent Games task.
 
 ---
 
@@ -206,6 +242,8 @@ and never written to the repository.
 | `npm run circuit:verify` | Official artifact checksums and exported verification key |
 | `npm run circuit:info` | Registered VK hash still matches the official endpoint |
 | `npm run claims` | Regenerates `docs/CLAIMS.md` from artifacts, lockfile, and live endpoints |
+| `npm run receipt:sample` | Generates a labelled local sample receipt with a real official-circuit proof |
+| `npm run receipt:verify -- <file>` | Re-verifies a receipt: policy replay, public signals, Groth16 proof, response HMAC |
 | `npm run preflight -- <base-url> <agent-id>` | Official signed preflight against a live deployment (needs `AGENT_GAMES_HMAC_SECRET`) |
 
 ---

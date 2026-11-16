@@ -323,4 +323,66 @@ describe('signed Agent Games endpoint', () => {
     expect(response.statusCode).toBe(409);
     expect(JSON.parse(response.body)).toEqual({ error: 'TASK_ID_CONFLICT' });
   });
+
+  it('serves a re-verifiable receipt for a completed task', async () => {
+    const storedBody = '{"decision":"APPROVE","reason_code":"VALID_CONDITION"}';
+    const storedSignature = signature(storedBody);
+    const { app } = await build({
+      repository: {
+        ...testDependencies().repository,
+        getReceipt: async (taskId: string) => ({
+          taskId,
+          mode: 'practice',
+          state: 'COMPLETED' as const,
+          decision: 'APPROVE' as const,
+          reasonCode: 'VALID_CONDITION' as const,
+          durationMs: 1234,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:01.000Z',
+          requestDigest: 'a'.repeat(64),
+          envelope: {
+            mode: 'practice',
+            issued_at: '2026-01-01T00:00:00.000Z',
+            deadline_at: '2026-01-01T00:01:00.000Z',
+            input: { proof_tx: `0x${'11'.repeat(32)}` },
+          },
+          policyChecks: [],
+          inboundVerification: null,
+          proof: null,
+          kurier: null,
+          responseBody: storedBody,
+          responseSignature: storedSignature,
+        }),
+      },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/receipt?task_id=gk_test_0001',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const receipt = JSON.parse(response.body) as {
+      taskId: string;
+      responseBody: string;
+      responseSignature: string;
+      verification: { reproduce: string };
+    };
+    expect(receipt.taskId).toBe('gk_test_0001');
+    expect(receipt.responseBody).toBe(storedBody);
+    expect(receipt.responseSignature).toBe(storedSignature);
+    expect(receipt.verification.reproduce).toContain('receipt:verify');
+  });
+
+  it('reports a missing receipt without leaking internals', async () => {
+    const { app } = await build();
+
+    const missingId = await app.inject({ method: 'GET', url: '/api/receipt?task_id=gk_none' });
+    expect(missingId.statusCode).toBe(404);
+    expect(JSON.parse(missingId.body)).toEqual({ error: 'TASK_NOT_FOUND' });
+
+    const missingParameter = await app.inject({ method: 'GET', url: '/api/receipt' });
+    expect(missingParameter.statusCode).toBe(400);
+    expect(JSON.parse(missingParameter.body)).toEqual({ error: 'TASK_ID_REQUIRED' });
+  });
 });

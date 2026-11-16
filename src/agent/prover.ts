@@ -4,7 +4,7 @@ import { groth16 } from 'snarkjs';
 import type { TaskIdEncoding } from '../config/env.js';
 import type { Decision, GatekeeperTask } from '../shared/protocol.js';
 import type { Groth16Proof, ProofBundle, Prover } from './contracts.js';
-import { deriveSalt, encodeTaskId, hexToField, reduceField } from './task-id.js';
+import { buildCircuitInputs, publicSignalsMatchInputs } from './circuit-inputs.js';
 
 interface VerificationKey {
   protocol: string;
@@ -29,7 +29,7 @@ export class CircuitProver implements Prover {
     decision: Decision,
     requestDigest: string,
   ): Promise<ProofBundle> {
-    const inputs = this.#circuitInputs(task, decision, requestDigest);
+    const inputs = buildCircuitInputs(task, decision, requestDigest, this.#taskIdEncoding);
     const result = await groth16.fullProve(
       inputs,
       path.join(this.#circuitDir, 'gatekeeper.wasm'),
@@ -57,55 +57,14 @@ export class CircuitProver implements Prover {
     }
   }
 
-  #circuitInputs(
-    task: GatekeeperTask,
-    decision: Decision,
-    requestDigest: string,
-  ): Record<string, string> {
-    const input = task.input;
-    return {
-      registeredVkHash: hexToField(input.registered_vk).toString(),
-      proofVkHash: hexToField(input.proof_vk).toString(),
-      minimum: BigInt(input.minimum).toString(),
-      publicBalance: BigInt(input.public_balance).toString(),
-      expiryBlock: BigInt(input.expiry_block).toString(),
-      currentBlock: BigInt(input.current_block).toString(),
-      recipient: hexToField(input.recipient).toString(),
-      conditionRecipient: hexToField(input.condition_recipient).toString(),
-      amount: BigInt(input.amount).toString(),
-      maxTransfer: BigInt(input.max_transfer).toString(),
-      decision: decision === 'APPROVE' ? '1' : '0',
-      taskId: encodeTaskId(task.task_id, this.#taskIdEncoding).toString(),
-      salt: deriveSalt(task.task_id, requestDigest).toString(),
-    };
-  }
-
   #assertPublicSignals(bundle: ProofBundle, inputs: Record<string, string>): void {
-    const expected = [
-      null,
-      inputs.registeredVkHash,
-      inputs.proofVkHash,
-      inputs.minimum,
-      inputs.publicBalance,
-      inputs.expiryBlock,
-      inputs.currentBlock,
-      inputs.recipient,
-      inputs.conditionRecipient,
-      inputs.amount,
-      inputs.maxTransfer,
-      inputs.decision,
-      inputs.taskId,
-    ];
-
-    if (bundle.publicSignals.length !== 13) {
-      throw new Error(`expected 13 public signals, received ${bundle.publicSignals.length}`);
-    }
-    for (let index = 1; index < expected.length; index += 1) {
-      const wanted = reduceField(BigInt(expected[index]!));
-      const actual = reduceField(BigInt(bundle.publicSignals[index]!));
-      if (wanted !== actual) {
-        throw new Error(`public signal ${index} does not match the circuit input`);
-      }
+    const { ok, mismatched } = publicSignalsMatchInputs(bundle.publicSignals, inputs);
+    if (!ok) {
+      throw new Error(
+        mismatched.length
+          ? `public signal ${mismatched[0]} does not match the circuit input`
+          : `expected 13 public signals, received ${bundle.publicSignals.length}`,
+      );
     }
   }
 

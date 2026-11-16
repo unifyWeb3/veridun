@@ -1,0 +1,152 @@
+{
+  "schema": "veridun.decision-receipt.v1",
+  "sample": true,
+  "provenance": {
+    "kind": "local sample",
+    "note": "Generated locally by scripts/sample-receipt.ts with the official circuit artifacts. This is not a platform-signed response and not a record of a live Agent Games task.",
+    "generated_at": "2026-11-16T22:46:06.627Z",
+    "circuit_artifacts": "artifacts/circuit (official, checksum-verified by npm run circuit:prepare)"
+  },
+  "task": {
+    "type": "agent-games.proof-gatekeeper.v1",
+    "task_id": "gk_sample_0001",
+    "mode": "practice",
+    "issued_at": "2026-01-01T00:00:00.000Z",
+    "deadline_at": "2026-01-01T00:01:00.000Z",
+    "input": {
+      "registered_vk": "0x6b79c6012a6d8651f3e13bc4d2a20370280ab49700c90c5316d4168bfbad77b0",
+      "proof_vk": "0x6b79c6012a6d8651f3e13bc4d2a20370280ab49700c90c5316d4168bfbad77b0",
+      "minimum": "1000",
+      "public_balance": "1460",
+      "expiry_block": "19842201",
+      "current_block": "19832000",
+      "recipient": "0x6e8f00000000000000000000000000000000d8e9",
+      "condition_recipient": "0x6e8f00000000000000000000000000000000d8e9",
+      "amount": "500",
+      "max_transfer": "1000",
+      "proof_tx": "0x1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  },
+  "request_digest": "a1da19fd9f079f8f285bb60fbe15c13225ca30e892f10ce229376391e8a52994",
+  "policy": {
+    "decision": "APPROVE",
+    "reason_code": "VALID_CONDITION",
+    "provable": true,
+    "checks": [
+      {
+        "key": "vk_match",
+        "label": "Verification key matches condition",
+        "passed": true,
+        "expected": "0x6b79c6012a6d8651f3e13bc4d2a20370280ab49700c90c5316d4168bfbad77b0",
+        "observed": "0x6b79c6012a6d8651f3e13bc4d2a20370280ab49700c90c5316d4168bfbad77b0"
+      },
+      {
+        "key": "threshold",
+        "label": "Public balance meets minimum",
+        "passed": true,
+        "expected": ">= 1000",
+        "observed": "1460"
+      },
+      {
+        "key": "expiry",
+        "label": "Condition has not expired",
+        "passed": true,
+        "expected": "< 19842201",
+        "observed": "19832000"
+      },
+      {
+        "key": "recipient",
+        "label": "Recipient matches condition",
+        "passed": true,
+        "expected": "0x6e8f00000000000000000000000000000000d8e9",
+        "observed": "0x6e8f00000000000000000000000000000000d8e9"
+      },
+      {
+        "key": "amount",
+        "label": "Amount is within transfer cap",
+        "passed": true,
+        "expected": "<= 1000",
+        "observed": "500"
+      },
+      {
+        "key": "replay",
+        "label": "Proof reference has not been used",
+        "passed": true,
+        "expected": "first use",
+        "observed": "first use"
+      }
+    ]
+  },
+  "counterfactual": {
+    "decision": "APPROVE",
+    "failingCheck": null,
+    "wouldHaveApprovedIf": null,
+    "valueAtRisk": {
+      "amount": "500",
+      "recipient": "0x6e8f00000000000000000000000000000000d8e9",
+      "maxTransfer": "1000"
+    },
+    "note": "Approved: 500 was released against the condition for 0x6e8f00000000000000000000000000000000d8e9."
+  },
+  "response_body": "{\"decision\":\"APPROVE\",\"reason_code\":\"VALID_CONDITION\",\"proof_tx\":\"0x1111111111111111111111111111111111111111111111111111111111111111\",\"proof\":{\"pi_a\":[\"1261984827126263671846203777117797140340371540687478629253182557114669521902\",\"20587411542462901020837177202362758542718292433113785849033260554439092605793\",\"1\"],\"pi_b\":[[\"9148920772299444480789502246725070157765503036211158064978074139665158837208\",\"9650270851315686440384081630271093426986478692080950495930165545467340707781\"],[\"7802564451447252323428287930836573443445020827701762880842205182205231749637\",\"14814661394827535175464380845744831117316288720279241622968597809696494149278\"],[\"1\",\"0\"]],\"pi_c\":[\"15225593896193106261836497019027897594486024589221252885525121603453740874325\",\"1672357310266045428325486652633890318139777375139161073861913518929940517981\",\"1\"],\"protocol\":\"groth16\",\"curve\":\"bn128\"},\"public_signals\":[\"9725791515353192929848008529261262696242534791591819759626624809854076136774\",\"4836144126773920907502496244340012141761656471453348073975163706578152814510\",\"4836144126773920907502496244340012141761656471453348073975163706578152814510\",\"1000\",\"1460\",\"19842201\",\"19832000\",\"631177991354012226774885434270766575703763769577\",\"631177991354012226774885434270766575703763769577\",\"500\",\"1000\",\"1\",\"10596369889764622339557239229450964157334070402717881998969608182705527085665\"]}",
+  "response_signature": "0032c0c799155b54b69a0edb46387519e43c80181318afe163249becfdb2e4d2",
+  "response_signature_algorithm": "HMAC-SHA256 hex over the exact response_body bytes",
+  "response_signature_key": {
+    "kind": "published sample key",
+    "value": "veridun-local-sample-key",
+    "note": "Live platform responses are signed with AGENT_GAMES_HMAC_SECRET, which is never published."
+  },
+  "proof": {
+    "scheme": "Groth16 on BN128",
+    "proof": {
+      "pi_a": [
+        "1261984827126263671846203777117797140340371540687478629253182557114669521902",
+        "20587411542462901020837177202362758542718292433113785849033260554439092605793",
+        "1"
+      ],
+      "pi_b": [
+        [
+          "9148920772299444480789502246725070157765503036211158064978074139665158837208",
+          "9650270851315686440384081630271093426986478692080950495930165545467340707781"
+        ],
+        [
+          "7802564451447252323428287930836573443445020827701762880842205182205231749637",
+          "14814661394827535175464380845744831117316288720279241622968597809696494149278"
+        ],
+        [
+          "1",
+          "0"
+        ]
+      ],
+      "pi_c": [
+        "15225593896193106261836497019027897594486024589221252885525121603453740874325",
+        "1672357310266045428325486652633890318139777375139161073861913518929940517981",
+        "1"
+      ],
+      "protocol": "groth16",
+      "curve": "bn128"
+    },
+    "public_signals": [
+      "9725791515353192929848008529261262696242534791591819759626624809854076136774",
+      "4836144126773920907502496244340012141761656471453348073975163706578152814510",
+      "4836144126773920907502496244340012141761656471453348073975163706578152814510",
+      "1000",
+      "1460",
+      "19842201",
+      "19832000",
+      "631177991354012226774885434270766575703763769577",
+      "631177991354012226774885434270766575703763769577",
+      "500",
+      "1000",
+      "1",
+      "10596369889764622339557239229450964157334070402717881998969608182705527085665"
+    ],
+    "locally_verified": true,
+    "public_signals_match_inputs": true,
+    "verification_key_source": "exported from the official gatekeeper proving key"
+  },
+  "reproduce": {
+    "generate": "npm run receipt:sample",
+    "verify": "npm run receipt:verify -- docs/samples/sample-receipt.json"
+  }
+}

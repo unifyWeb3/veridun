@@ -6,6 +6,7 @@ import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
   type FastifyReply,
+  type FastifyRequest,
 } from 'fastify';
 import type {
   InboundProofResult,
@@ -169,7 +170,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     (_request, body, done) => done(null, body),
   );
 
-  app.get('/health', async (_request, reply) => {
+  const healthHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       await repository.ping();
       return reply.send({
@@ -187,9 +188,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         timestamp: new Date().toISOString(),
       });
     }
-  });
+  };
 
-  app.post('/agent', async (request, reply) => {
+  app.get('/health', healthHandler);
+  app.get('/api/health', healthHandler);
+
+  const agentHandler = async (request: FastifyRequest, reply: FastifyReply) => {
     const rawBody = asBuffer(request.body);
     if (!verifyBodySignature(config.hmacSecret, rawBody, request.headers[SIGNATURE_HEADER])) {
       return sendSigned(reply, config.hmacSecret, 401, { error: 'INVALID_SIGNATURE' });
@@ -260,7 +264,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       logger: app.log,
       reply,
     });
-  });
+  };
+
+  app.post('/agent', agentHandler);
+  app.post('/api/agent', agentHandler);
 
   app.get('/api/dashboard/summary', async (_request, reply) => {
     try {

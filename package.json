@@ -14,6 +14,7 @@
     "build": "npm run build:api && npm run build:web",
     "build:api": "tsc -p tsconfig.api.json",
     "build:web": "vite build --config web/vite.config.ts",
+    "build:vercel": "npm run circuit:prepare && npm run build:web",
     "start": "node dist/api/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

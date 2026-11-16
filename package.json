@@ -5,7 +5,7 @@
   "description": "Auditable Proof Gatekeeper agent for zkVerify Agent Games",
   "type": "module",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "concurrently -k -n api,web -c cyan,green \"npm:dev:api\" \"npm:dev:web\"",

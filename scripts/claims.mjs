@@ -319,6 +319,80 @@ async function main() {
     );
   }
 
+  const benchmarkPath = path.join(ROOT, 'docs/benchmarks/concurrency-and-latency.json');
+  let benchmark = null;
+  try {
+    benchmark = JSON.parse(await readFile(benchmarkPath, 'utf8'));
+  } catch {
+    benchmark = null;
+  }
+
+  if (benchmark) {
+    const concurrency = benchmark.scenarios.concurrentDelivery;
+    const latency = benchmark.scenarios.sequentialLatency;
+    sections.push(
+      '## Concurrency and latency benchmark',
+      '',
+      'Measured by `npm run benchmark`: the real application over real HTTP against',
+      `a real PostgreSQL server (\`${benchmark.environment.postgresVersion ?? benchmark.environment.database}\`),`,
+      'with the official circuit artifacts. The artifact is',
+      '`docs/benchmarks/concurrency-and-latency.json`; the numbers below are read',
+      'from it, not transcribed.',
+      '',
+      table([
+        {
+          fact: 'Concurrent deliveries of one task ID',
+          value: `\`${concurrency.deliveries}\``,
+          source: `stored responses: ${concurrency.storedResponses}; proof generations: ${concurrency.proofGenerations}`,
+        },
+        {
+          fact: 'Every concurrent delivery returned identical response bytes',
+          value: `\`${concurrency.identicalResponseBodies}\``,
+          source: `identical signatures: ${concurrency.identicalSignatures}; response bytes: ${concurrency.responseBytes}`,
+        },
+        {
+          fact: 'A retry replayed the stored response bytes',
+          value: `\`${concurrency.retryReplayedStoredBytes}\``,
+          source: `proof generations after the retry: ${concurrency.proofGenerationsAfterRetry}`,
+        },
+        {
+          fact: 'Sequential full-path latency (p50 / p95 / max)',
+          value: `\`${latency.p50Ms} ms / ${latency.p95Ms} ms / ${latency.maxMs} ms\``,
+          source: `${latency.samples} samples, min ${latency.minMs} ms, mean ${latency.meanMs} ms`,
+        },
+        {
+          fact: 'Internal response budget',
+          value: `\`${benchmark.budget.internalBudgetMs} ms\``,
+          source: `platform deadline: ${benchmark.budget.platformDeadlineMs} ms`,
+        },
+        {
+          fact: 'A reused proof reference was rejected',
+          value: `\`${benchmark.scenarios.replayDetection.decision} / ${benchmark.scenarios.replayDetection.reasonCode}\``,
+          source: `carried a proof: ${benchmark.scenarios.replayDetection.carriedProof}`,
+        },
+        {
+          fact: 'The stored proof verified against the official verification key',
+          value: `\`${benchmark.scenarios.storedProofVerification.verified}\``,
+          source: `public signals: ${benchmark.scenarios.storedProofVerification.publicSignalCount}`,
+        },
+        {
+          fact: 'Benchmark host',
+          value: `\`${benchmark.environment.node} on ${benchmark.environment.platform} (${benchmark.environment.cpus} CPUs)\``,
+          source: `generated at ${benchmark.generatedAt}`,
+        },
+      ]),
+      '',
+    );
+  } else {
+    sections.push(
+      '## Concurrency and latency benchmark',
+      '',
+      'Not generated. Re-run `npm run benchmark` to record the measured delivery',
+      'guarantees and latency against the response budget.',
+      '',
+    );
+  }
+
   await writeFile(OUTPUT, `${sections.join('\n')}\n`, 'utf8');
   console.log(`Claims registry written to ${path.relative(ROOT, OUTPUT)}`);
 }

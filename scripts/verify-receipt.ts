@@ -7,6 +7,7 @@ import {
   publicSignalsMatchInputs,
 } from '../src/agent/circuit-inputs.js';
 import { buildCounterfactual } from '../src/agent/counterfactual.js';
+import type { Groth16Proof } from '../src/agent/contracts.js';
 import { verifyBodySignature } from '../src/agent/hmac.js';
 import { evaluatePolicy } from '../src/agent/policy.js';
 import { gatekeeperTaskSchema } from '../src/shared/protocol.js';
@@ -128,7 +129,11 @@ if (publicSignals.length !== 13) {
   const vkey = JSON.parse(await readFile(vkeyPath, 'utf8'));
   let verified = false;
   try {
-    verified = await groth16.verify(vkey, publicSignals, receipt.proof?.proof);
+    verified = await groth16.verify(
+      vkey,
+      publicSignals,
+      receipt.proof?.proof as Groth16Proof,
+    );
   } catch (error) {
     record(
       'Groth16 proof verifies against the official verification key',
@@ -147,17 +152,18 @@ if (receipt.counterfactual) {
     decision,
     policy.checks,
   );
+  const expectedValueAtRisk = expectedCounterfactual.valueAtRisk;
   const sameFailingCheck =
     (receipt.counterfactual.failingCheck?.key ?? null) ===
     (expectedCounterfactual.failingCheck?.key ?? null);
   const sameValueAtRisk =
-    receipt.counterfactual.valueAtRisk?.amount === expectedCounterfactual.valueAtRisk.amount &&
-    receipt.counterfactual.valueAtRisk?.recipient === expectedCounterfactual.valueAtRisk.recipient;
+    receipt.counterfactual.valueAtRisk?.amount === expectedValueAtRisk?.amount &&
+    receipt.counterfactual.valueAtRisk?.recipient === expectedValueAtRisk?.recipient;
   record(
     'counterfactual matches a recomputation from the envelope',
     sameFailingCheck && sameValueAtRisk,
     sameFailingCheck && sameValueAtRisk
-      ? `value at risk ${expectedCounterfactual.valueAtRisk.amount} to ${expectedCounterfactual.valueAtRisk.recipient}`
+      ? `value at risk ${expectedValueAtRisk?.amount} to ${expectedValueAtRisk?.recipient}`
       : `receipt counterfactual=${JSON.stringify(receipt.counterfactual.failingCheck?.key ?? null)} recomputed=${expectedCounterfactual.failingCheck?.key ?? null}`,
   );
 }

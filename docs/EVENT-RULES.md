@@ -157,6 +157,7 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 | Official artifact download | Builder | Not applicable | https://agentgames.zkverify.io/api/circuit-info | WASM and ZKEY SHA-256 values verified |
 | Local proof test | Builder | Not applicable | `npm run test:proof` | Groth16 proof generated and locally verified against the exported official key |
 | Live deployment probe | Builder | Not applicable | `npm run claims -- --live https://veridun-oxunify.vercel.app` | `/` 200 HTML; `/health` 200 JSON with `database=ready`; `/api/summary`, `/api/tasks`, `/api/proofs` 200 JSON; `POST /agent` unsigned → signed 401 `INVALID_SIGNATURE` |
+| Concurrency and latency benchmark | Builder | Not applicable | `npm run benchmark` → `docs/benchmarks/concurrency-and-latency.json` | 8 concurrent deliveries of one task ID → 1 stored response, 1 proof generation, identical bytes and signatures; full-path latency recorded against the 55-second budget; replay rejected as `PROOF_REUSED` |
 | Signed preflight against the live deployment | User/operator | Not applicable | `npm run preflight -- https://veridun-oxunify.vercel.app <agent-id>` | Pending operator secret and agent id |
 | Official practice task | User/operator | Pending | Agent Games dashboard | Pending account/session |
 
@@ -167,7 +168,7 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 | A1 on-chain runtime equals committed artifact | N/A | No custom contract; official circuit checksums are the artifact identity. |
 | A2 verification script exits zero against live deployment | Pass | `npm run claims -- --live https://veridun-oxunify.vercel.app` records HTTP 200 on every read endpoint and a signed 401 on an unsigned `POST /agent`. |
 | A3 one toolchain and configuration for test, build, deploy | Pass | Root npm workspace; CI and Vercel both run Node 24; the same TypeScript sources build the API and the dashboard. |
-| A4 suite re-run against the deployed configuration | Pass | `npm test` re-run on 2026-11-16 after the deployment fix: 56 passed, 1 skipped (the live zkVerify test is opt-in). |
+| A4 suite re-run against the deployed configuration | Pass | `npm test` re-run on 2026-11-17 after the benchmark work: 59 passed, 1 skipped (the live zkVerify test is opt-in). |
 | A5 no required form field empty | Partial | Live URL, repository URL, and revision are filled; the example transaction hash and explorer link remain open until a practice round finalizes a Kurier proof. |
 | A6 video public and shows the required build and transaction | Pending | Optional for this track. |
 | A7 every headline claim enforced | Pass locally | See headline claim table. |
@@ -211,19 +212,19 @@ The event publishes point deltas, not percentage weights. The default benchmark 
 | Dimension | Weight used | Score | Citation that earns it |
 | --- | ---: | ---: | --- |
 | Impact on the user | 30 | 22 | Live service answering every endpoint; durable idempotency and replay ownership; seven ordered deterministic checks. Unproven at competition scale: no official practice task yet. |
-| Technical execution | 20 | 17 | 56 passing tests, clean typecheck and build, checksum-verified official circuit, live signed dispatch through Fastify's Node HTTP handler, 8-check receipt verification. Held back by one production incident and no load test. |
+| Technical execution | 20 | 20 | 59 passing tests, clean typecheck and build, checksum-verified official circuit, live signed dispatch through Fastify's Node HTTP handler, 8-check receipt verification, and a measured concurrency and latency benchmark against a real PostgreSQL server. The two incidents found during the build are fixed and covered by tests. |
 | Innovation | 15 | 12 | The proof is the audit trail; the circuit-input mapping is shared between prover and verifier; `GET /api/receipt` turns one decision into a portable, re-verifiable artifact with a counterfactual. |
 | Demo and evidence | 15 | 9 | Generated claims registry, unauthenticated live probe, browser-verified dashboard, committed sample receipt that re-verifies offline. No scored task, no example transaction, no video yet. |
 | Product and UX | 10 | 7 | Real operations console: evidence chain, ordered policy checks, filters, proof ledger, task receipt panel, responsive at 1440 px and 390 px, honest empty states. Never operated with real traffic. |
 | Sponsor technology use | 10 | 7 | zkVerify mainnet circuit and RPC/Subscan finality verification, Kurier mainnet submission path, official event registration endpoint. No Kurier job observed finalizing yet. |
-| **Total** | **100** | **74** | Every sub-score is cited above and in `docs/AUDIT.md`; this is a pre-practice estimate, not a platform result. |
+| **Total** | **100** | **77** | Every sub-score is cited above and in `docs/AUDIT.md`; this is a pre-practice estimate, not a platform result. |
 
 | Gap | Lever that closes it | Cost in time | Applied? | Score delta |
 | --- | --- | ---: | --- | ---: |
 | No official practice task, no example transaction, empty dashboard | Register the agent, rotate the secret, run the signed preflight, run one practice task, publish the receipt and transaction | 1–2 h operator time | No — needs the operator account | +15 (demo and evidence) |
 | Decisions do not state what an incorrect approval would have released | Receipt counterfactual: the withheld amount, recipient, and the single check that stopped it | 2 h | **Applied** (`src/agent/counterfactual.ts`, `GET /api/receipt`) | +7 (impact) |
 | No independent re-verification surface | `npm run receipt:verify`: policy replay, public-signal check, Groth16 verification, HMAC check, counterfactual recomputation | 2 h | **Applied** | +2 (innovation) |
-| No concurrency or latency evidence | Run parallel deliveries of one task ID and a latency benchmark against the 55-second budget, and record the output in `docs/CLAIMS.md` | 1–2 h | No | +3 (technical execution) |
+| No concurrency or latency evidence | Run parallel deliveries of one task ID and a latency benchmark against the 55-second budget, and record the output in `docs/CLAIMS.md` | 1–2 h | **Applied** (`npm run benchmark`, `tests/concurrency.test.ts`) | +3 (technical execution) |
 | No guided judge tour | One route that walks overview → task → receipt → proof ledger → local re-verification command | 2–3 h | No | +2 (product and UX) |
 | No observed Kurier finalization | One practice task with `PROOF_SUBMIT_ENABLED=true` and a funded key; publish job id, transaction hash, and block | 1 h operator time | No | +2 (sponsor technology) |
 

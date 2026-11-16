@@ -27,6 +27,7 @@
     "circuit:info": "node scripts/circuit-info.mjs",
     "claims": "node scripts/claims.mjs",
     "preflight": "node scripts/preflight.mjs",
+    "benchmark": "tsx scripts/benchmark.ts",
     "receipt:sample": "tsx scripts/sample-receipt.ts",
     "receipt:verify": "tsx scripts/verify-receipt.ts"
   },
@@ -49,6 +50,8 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
     "concurrently": "^9.2.1",
+    "embedded-postgres": "^18.6.0-beta.19",
+    "exit-hook": "^5.1.0",
     "pg-mem": "^3.0.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

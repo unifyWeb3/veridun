@@ -1,0 +1,128 @@
+{
+  "ok": true,
+  "generatedAt": "2026-11-16T23:49:30.932Z",
+  "environment": {
+    "node": "v24.22.2",
+    "platform": "linux 6.18.58.1-microsoft-standard-WSL2",
+    "arch": "x64",
+    "cpus": 4,
+    "database": "embedded PostgreSQL server (embedded-postgres)",
+    "postgresVersion": "PostgreSQL 18.6 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0, 64-bit",
+    "circuitDir": "/home/unify/aget/artifacts/circuit",
+    "taskIdEncoding": "auto"
+  },
+  "budget": {
+    "internalBudgetMs": 55000,
+    "platformDeadlineMs": 60000
+  },
+  "scenarios": {
+    "concurrentDelivery": {
+      "deliveries": 8,
+      "identicalResponseBodies": true,
+      "identicalSignatures": true,
+      "storedResponses": 1,
+      "proofGenerations": 1,
+      "responseBytes": 1359,
+      "wallClockMs": 1988,
+      "slowestDeliveryMs": 1971,
+      "retryReplayedStoredBytes": true,
+      "proofGenerationsAfterRetry": 1
+    },
+    "sequentialLatency": {
+      "samples": 5,
+      "minMs": 480,
+      "meanMs": 666,
+      "p50Ms": 708,
+      "p95Ms": 864,
+      "maxMs": 864,
+      "decisions": [
+        "APPROVE",
+        "APPROVE",
+        "APPROVE",
+        "APPROVE",
+        "APPROVE"
+      ]
+    },
+    "replayDetection": {
+      "decision": "REJECT",
+      "reasonCode": "PROOF_REUSED",
+      "carriedProof": false
+    },
+    "storedProofVerification": {
+      "verified": true,
+      "publicSignalCount": 13
+    }
+  },
+  "assertions": [
+    {
+      "name": "every concurrent delivery answered 200",
+      "ok": true,
+      "detail": "200, 200, 200, 200, 200, 200, 200, 200"
+    },
+    {
+      "name": "every concurrent delivery returned identical response bytes",
+      "ok": true,
+      "detail": "1 distinct body/bodies across 8 deliveries"
+    },
+    {
+      "name": "every concurrent delivery returned identical signature",
+      "ok": true,
+      "detail": "1 distinct signature(s)"
+    },
+    {
+      "name": "exactly one task row was stored",
+      "ok": true,
+      "detail": "1 row(s)"
+    },
+    {
+      "name": "the proof was generated exactly once",
+      "ok": true,
+      "detail": "1 generation(s)"
+    },
+    {
+      "name": "the stored response equals the delivered response",
+      "ok": true,
+      "detail": "byte-identical"
+    },
+    {
+      "name": "the stored signature equals the delivered signature",
+      "ok": true,
+      "detail": "identical"
+    },
+    {
+      "name": "a retry replays the exact stored response bytes",
+      "ok": true,
+      "detail": "byte-identical replay"
+    },
+    {
+      "name": "a retry does not generate a second proof",
+      "ok": true,
+      "detail": "1 generation(s) after the retry"
+    },
+    {
+      "name": "every sequential task was answered 200",
+      "ok": true,
+      "detail": "APPROVE, APPROVE, APPROVE, APPROVE, APPROVE"
+    },
+    {
+      "name": "the slowest observed response stayed inside the internal budget",
+      "ok": true,
+      "detail": "max 864 ms against a 55000 ms budget"
+    },
+    {
+      "name": "a reused proof reference is rejected as a replay",
+      "ok": true,
+      "detail": "REJECT / PROOF_REUSED"
+    },
+    {
+      "name": "a replay rejection carries no proof",
+      "ok": true,
+      "detail": "no proof in the response"
+    },
+    {
+      "name": "the stored proof verifies against the official verification key",
+      "ok": true,
+      "detail": "groth16.verify returned true"
+    }
+  ]
+}

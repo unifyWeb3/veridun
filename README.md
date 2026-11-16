@@ -241,10 +241,33 @@ and never written to the repository.
 | `npm run build` | API compilation and dashboard bundle |
 | `npm run circuit:verify` | Official artifact checksums and exported verification key |
 | `npm run circuit:info` | Registered VK hash still matches the official endpoint |
-| `npm run claims` | Regenerates `docs/CLAIMS.md` from artifacts, lockfile, and live endpoints |
+| `npm run claims` | Regenerates `docs/CLAIMS.md` from artifacts, lockfile, benchmark artifact, and live endpoints |
+| `npm run benchmark` | Measures concurrent delivery and latency against a real PostgreSQL server and the official circuit |
 | `npm run receipt:sample` | Generates a labelled local sample receipt with a real official-circuit proof |
 | `npm run receipt:verify -- <file>` | Re-verifies a receipt: policy replay, public signals, Groth16 proof, response HMAC |
 | `npm run preflight -- <base-url> <agent-id>` | Official signed preflight against a live deployment (needs `AGENT_GAMES_HMAC_SECRET`) |
+
+---
+
+## Delivery guarantees, measured
+
+`npm run benchmark` starts the real application over real HTTP against a real
+PostgreSQL server with the official circuit artifacts, then asserts the
+properties the platform depends on. It writes
+`docs/benchmarks/concurrency-and-latency.json`, which `npm run claims` turns
+into the factual registry.
+
+| Property | How it is proven |
+| --- | --- |
+| Concurrent deliveries of one task ID collapse into one response | N parallel signed deliveries of the same task: one stored task row, one proof generation, and every caller receives the identical response bytes and signature |
+| A retry never re-proves or re-decides | A later delivery of the same task replays the stored bytes and leaves the proof count at one |
+| A reused proof reference is a replay | A second task carrying the same `proof_tx` is rejected as `PROOF_REUSED` with no proof attached |
+| The stored proof is verifiable by a third party | The proof read back from PostgreSQL verifies against the official verification key, with 13 public signals |
+| The response budget is respected | Every full-path latency (HMAC, policy, Groth16 proof, verification, persistence) is measured against the 55-second internal budget, inside the 60-second platform deadline |
+
+The same invariants run as an integration test in the normal suite
+(`tests/concurrency.test.ts`), so a regression fails `npm test` rather than
+waiting for a benchmark run.
 
 ---
 

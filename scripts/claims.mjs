@@ -148,6 +148,18 @@ async function liveProbe(baseUrl) {
     observed: `error=${unsignedBody.error ?? 'unknown'} signed=${unsigned.headers.has('x-agent-games-signature')}`,
   });
 
+  // The receipt surface must answer a missing task and a missing parameter
+  // with its documented codes, not with a generic failure.
+  for (const path of ['/api/receipt?task_id=gk_missing', '/api/receipt']) {
+    const response = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(30_000) });
+    const body = (await response.json().catch(() => ({}))) ?? {};
+    rows.push({
+      endpoint: `GET ${path}`,
+      status: response.status,
+      observed: `error=${body.error ?? 'none'}`,
+    });
+  }
+
   return rows;
 }
 

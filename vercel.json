@@ -1,16 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:web",
   "outputDirectory": "dist/web",
   "installCommand": "npm ci",
   "devCommand": "npm run dev",
   "framework": "vite",
-  "functions": {
-    "dist/api/server.js": {
-      "maxDuration": 60,
-      "memory": 2048
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -23,8 +17,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/health", "destination": "/api/health" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/health", "destination": "/health" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "github": {

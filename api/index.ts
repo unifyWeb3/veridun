@@ -1,5 +1,8 @@
-import { handleVercelRequest } from '../src/api/vercel.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createVercelHandler } from '../src/api/vercel.js';
 
-export default {
-  fetch: handleVercelRequest,
-};
+const handler = createVercelHandler();
+
+export default async function (request: VercelRequest, response: VercelResponse) {
+  return handler(request, response);
+}

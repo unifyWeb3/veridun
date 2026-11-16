@@ -132,6 +132,32 @@ describe('vercel web handler', () => {
     }
   });
 
+  it('serves requests without Fastify inject (Vercel rejects its ESM-only cookie dependency)', async () => {
+    const runtime = await testRuntime();
+    try {
+      // `app.inject()` loads `light-my-request`, whose CommonJS `require()` of
+      // the ESM-only `cookie` package fails with ERR_REQUIRE_ESM on Vercel.
+      const inject = runtime.app.inject;
+      runtime.app.inject = (() => {
+        throw new Error('app.inject must not be used in the serverless handler');
+      }) as typeof runtime.app.inject;
+
+      try {
+        const response = await handleVercelRequest(
+          new Request('https://veridun-oxunify.vercel.app/health'),
+          runtime,
+        );
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as { ok: boolean };
+        expect(body.ok).toBe(true);
+      } finally {
+        runtime.app.inject = inject;
+      }
+    } finally {
+      await runtime.close();
+    }
+  });
+
   it('does not route dashboard paths through the api function', async () => {
     const runtime = await testRuntime();
     try {

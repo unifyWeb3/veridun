@@ -64,7 +64,14 @@ export interface AppConfig {
 }
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = environmentSchema.parse(source);
+  // Dashboard-pasted values frequently carry a trailing newline or space.
+  // Trim string values so a paste artifact cannot fail closed on an otherwise
+  // valid configuration.
+  const trimmed: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(source)) {
+    trimmed[key] = typeof value === 'string' ? value.trim() : value;
+  }
+  const parsed = environmentSchema.parse(trimmed);
   return {
     nodeEnv: parsed.NODE_ENV,
     hmacSecret: parsed.AGENT_GAMES_HMAC_SECRET,

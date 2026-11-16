@@ -269,14 +269,20 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post('/agent', agentHandler);
   app.post('/api/agent', agentHandler);
 
-  app.get('/api/dashboard/summary', async (_request, reply) => {
+  const summaryHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       return reply.send(await repository.dashboardSummary());
     } catch (error) {
       requestLogError(app.log, error, 'dashboard summary failed');
       return reply.status(503).send({ error: 'DASHBOARD_UNAVAILABLE' });
     }
-  });
+  };
+
+  // Canonical single-segment dashboard route. Vercel only routes one-segment
+  // paths under /api to the catch-all function, so the console uses this
+  // path and the nested alias below is kept for direct Fastify access.
+  app.get('/api/summary', summaryHandler);
+  app.get('/api/dashboard/summary', summaryHandler);
 
   app.get('/api/tasks', async (request, reply) => {
     const query = request.query as Record<string, unknown>;
@@ -299,8 +305,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     }
   });
 
-  app.get('/api/tasks/:taskId', async (request, reply) => {
-    const { taskId } = request.params as { taskId: string };
+  const taskDetailHandler = async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { taskId?: string };
+    const query = request.query as Record<string, unknown>;
+    const taskId =
+      params.taskId ?? (typeof query.task_id === 'string' ? query.task_id : undefined);
+    if (!taskId) {
+      return reply.status(400).send({ error: 'TASK_ID_REQUIRED' });
+    }
     try {
       const task = await repository.getTask(taskId);
       if (!task) return reply.status(404).send({ error: 'TASK_NOT_FOUND' });
@@ -309,7 +321,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       requestLogError(app.log, error, 'task detail failed');
       return reply.status(503).send({ error: 'TASK_UNAVAILABLE' });
     }
-  });
+  };
+
+  // Canonical single-segment dashboard route (query parameter carries the id).
+  // Vercel only routes one-segment paths under /api to the catch-all function,
+  // so the console uses this path and the nested alias below is kept for
+  // direct Fastify access.
+  app.get('/api/task', taskDetailHandler);
+  app.get('/api/tasks/:taskId', taskDetailHandler);
 
   app.get('/api/proofs', async (request, reply) => {
     const query = request.query as Record<string, unknown>;

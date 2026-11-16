@@ -35,9 +35,9 @@ describe('vercel web handler', () => {
     expect(resolveInternalPath('/api/agent')).toBe('/api/agent');
     expect(resolveInternalPath('/health')).toBe('/health');
     expect(resolveInternalPath('/api/health')).toBe('/api/health');
-    expect(resolveInternalPath('/api/dashboard/summary')).toBe('/api/dashboard/summary');
+    expect(resolveInternalPath('/api/summary')).toBe('/api/summary');
+    expect(resolveInternalPath('/api/task')).toBe('/api/task');
     expect(resolveInternalPath('/api/tasks')).toBe('/api/tasks');
-    expect(resolveInternalPath('/api/tasks/gk_test_0001')).toBe('/api/tasks/gk_test_0001');
     expect(resolveInternalPath('/api/proofs')).toBe('/api/proofs');
     expect(resolveInternalPath('/tasks')).toBeNull();
     expect(resolveInternalPath('/')).toBeNull();
@@ -106,6 +106,27 @@ describe('vercel web handler', () => {
       const body = (await response.json()) as { ok: boolean; service: string };
       expect(body.ok).toBe(true);
       expect(body.service).toBe('veridun');
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it('serves the single-segment dashboard routes Vercel routes to the function', async () => {
+    const runtime = await testRuntime();
+    try {
+      const summary = await handleVercelRequest(
+        new Request('https://veridun-oxunify.vercel.app/api/summary'),
+        runtime,
+      );
+      expect(summary.status).toBe(200);
+
+      const task = await handleVercelRequest(
+        new Request('https://veridun-oxunify.vercel.app/api/task?task_id=gk_missing'),
+        runtime,
+      );
+      expect(task.status).toBe(404);
+      const body = (await task.json()) as { error: string };
+      expect(body.error).toBe('TASK_NOT_FOUND');
     } finally {
       await runtime.close();
     }

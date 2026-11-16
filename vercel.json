@@ -26,6 +26,8 @@
   "rewrites": [
     { "source": "/agent", "destination": "/api/agent" },
     { "source": "/health", "destination": "/api/health" },
+    { "source": "/api/dashboard/summary", "destination": "/api/summary" },
+    { "source": "/api/tasks/:taskId", "destination": "/api/task?task_id=:taskId" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "github": {

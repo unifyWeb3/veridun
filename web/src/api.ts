@@ -609,7 +609,7 @@ export async function getHealth(signal?: AbortSignal): Promise<HealthStatus> {
 }
 
 export async function getDashboardSummary(signal?: AbortSignal): Promise<DashboardSummary> {
-  const raw = await requestJson('/api/dashboard/summary', signal);
+  const raw = await requestJson('/api/summary', signal);
   return normalizeSummary(raw);
 }
 
@@ -626,7 +626,10 @@ export async function getTasks(query: TaskQuery, signal?: AbortSignal): Promise<
 }
 
 export async function getTask(taskId: string, signal?: AbortSignal): Promise<TaskDetail> {
-  const raw = await requestJson(`/api/tasks/${encodeURIComponent(taskId)}`, signal);
+  const raw = await requestJson(
+    `/api/task?task_id=${encodeURIComponent(taskId)}`,
+    signal,
+  );
   return normalizeTaskDetail(raw);
 }
 

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-function normalizeSignature(value: string | string[] | undefined): string | null {
+function normalizeSignature(value: string | string[] | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim().replace(/^sha256=/i, '').toLowerCase();
   return /^[0-9a-f]{64}$/.test(normalized) ? normalized : null;
@@ -13,7 +13,7 @@ export function signBody(secret: string, body: Buffer | string): string {
 export function verifyBodySignature(
   secret: string,
   body: Buffer | string,
-  provided: string | string[] | undefined,
+  provided: string | string[] | null | undefined,
 ): boolean {
   const normalized = normalizeSignature(provided);
   if (!normalized) return false;

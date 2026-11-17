@@ -85,7 +85,7 @@ The event publishes point deltas rather than percentage weights. They are used a
 | On-chain runtime keccak-256 | Not applicable |
 | On-chain byte length | Not applicable |
 | Comparison result | Local proof verification must pass against the verification key exported from the official proving key |
-| Test suite re-run against this configuration (date, output file) | `npm test` re-run on 2026-11-16: 51 passed, 1 skipped (live zkVerify test is opt-in) |
+| Test suite re-run against this configuration (date, output file) | `npm test` re-run on 2026-11-17 after the judge-tour work: 59 passed, 1 skipped (live zkVerify test is opt-in) |
 
 ## Headline claim enforcement
 
@@ -144,7 +144,7 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 | Item | Value |
 | --- | --- |
 | Surface type (CLI, SDK, API) | HTTPS API + operational web dashboard |
-| Command or endpoint | `POST /agent`; `GET /health`; dashboard API under `/api/*` (`/api/summary`, `/api/tasks`, `/api/task?task_id=…`, `/api/proofs`) |
+| Command or endpoint | `POST /agent`; `GET /health`; dashboard API under `/api/*` (`/api/summary`, `/api/tasks`, `/api/task?task_id=…`, `/api/receipt?task_id=…`, `/api/proofs`); judge tour at `GET /tour` |
 | Required environment | `AGENT_GAMES_HMAC_SECRET`, `DATABASE_URL`; `KURIER_API_KEY` for mainnet finalization evidence |
 | Output that proves it works | Signed preflight; decision response; Groth16 proof; 13 public signals; local verification result; Kurier job/finalization metadata |
 | How the output is checked against the chain or service | `snarkjs.groth16.verify` locally and Kurier `Finalized` status when configured |
@@ -156,8 +156,9 @@ No contract or user-fund value-moving branch exists in this track. Proof submiss
 | --- | --- | --- | --- | --- |
 | Official artifact download | Builder | Not applicable | https://agentgames.zkverify.io/api/circuit-info | WASM and ZKEY SHA-256 values verified |
 | Local proof test | Builder | Not applicable | `npm run test:proof` | Groth16 proof generated and locally verified against the exported official key |
-| Live deployment probe | Builder | Not applicable | `npm run claims -- --live https://veridun-oxunify.vercel.app` | `/` 200 HTML; `/health` 200 JSON with `database=ready`; `/api/summary`, `/api/tasks`, `/api/proofs` 200 JSON; `POST /agent` unsigned → signed 401 `INVALID_SIGNATURE` |
+| Live deployment probe | Builder | Not applicable | `npm run claims -- --live https://veridun-oxunify.vercel.app` | `/` 200 HTML; `/tour` 200 HTML; `/health` 200 JSON with `database=ready`; `/api/summary`, `/api/tasks`, `/api/proofs` 200 JSON; `POST /agent` unsigned → signed 401 `INVALID_SIGNATURE` |
 | Concurrency and latency benchmark | Builder | Not applicable | `npm run benchmark` → `docs/benchmarks/concurrency-and-latency.json` | 8 concurrent deliveries of one task ID → 1 stored response, 1 proof generation, identical bytes and signatures; full-path latency recorded against the 55-second budget; replay rejected as `PROOF_REUSED` |
+| Judge tour, rendered in a browser | Builder | Not applicable | `https://veridun.vercel.app/tour` | Headless Chromium at 1440 px and 390 px against the live deployment: five steps with live probe results (`HTTP 401 INVALID_SIGNATURE · RESPONSE SIGNED: YES`, `DATABASE READY`, `NO TASK SCORED YET`, `NO PROOF RECORDS YET`, `RECEIPT SURFACE ANSWERED HTTP 404 TASK_NOT_FOUND`), copyable commands, and the "What this tour does not prove" section |
 | Signed preflight against the live deployment | User/operator | Not applicable | `npm run preflight -- https://veridun-oxunify.vercel.app <agent-id>` | Pending operator secret and agent id |
 | Official practice task | User/operator | Pending | Agent Games dashboard | Pending account/session |
 
@@ -215,9 +216,9 @@ The event publishes point deltas, not percentage weights. The default benchmark 
 | Technical execution | 20 | 20 | 59 passing tests, clean typecheck and build, checksum-verified official circuit, live signed dispatch through Fastify's Node HTTP handler, 8-check receipt verification, and a measured concurrency and latency benchmark against a real PostgreSQL server. The two incidents found during the build are fixed and covered by tests. |
 | Innovation | 15 | 12 | The proof is the audit trail; the circuit-input mapping is shared between prover and verifier; `GET /api/receipt` turns one decision into a portable, re-verifiable artifact with a counterfactual. |
 | Demo and evidence | 15 | 9 | Generated claims registry, unauthenticated live probe, browser-verified dashboard, committed sample receipt that re-verifies offline. No scored task, no example transaction, no video yet. |
-| Product and UX | 10 | 7 | Real operations console: evidence chain, ordered policy checks, filters, proof ledger, task receipt panel, responsive at 1440 px and 390 px, honest empty states. Never operated with real traffic. |
+| Product and UX | 10 | 9 | Real operations console: evidence chain, ordered policy checks, filters, proof ledger, task receipt panel, responsive at 1440 px and 390 px, honest empty states. Plus a `/tour` judge route with five live probes, copyable commands, and an explicit limits section; verified in headless Chromium against the live deployment at 1440 px and 390 px. Never operated with real traffic. |
 | Sponsor technology use | 10 | 7 | zkVerify mainnet circuit and RPC/Subscan finality verification, Kurier mainnet submission path, official event registration endpoint. No Kurier job observed finalizing yet. |
-| **Total** | **100** | **77** | Every sub-score is cited above and in `docs/AUDIT.md`; this is a pre-practice estimate, not a platform result. |
+| **Total** | **100** | **79** | Every sub-score is cited above and in `docs/AUDIT.md`; this is a pre-practice estimate, not a platform result. |
 
 | Gap | Lever that closes it | Cost in time | Applied? | Score delta |
 | --- | --- | ---: | --- | ---: |
@@ -225,7 +226,7 @@ The event publishes point deltas, not percentage weights. The default benchmark 
 | Decisions do not state what an incorrect approval would have released | Receipt counterfactual: the withheld amount, recipient, and the single check that stopped it | 2 h | **Applied** (`src/agent/counterfactual.ts`, `GET /api/receipt`) | +7 (impact) |
 | No independent re-verification surface | `npm run receipt:verify`: policy replay, public-signal check, Groth16 verification, HMAC check, counterfactual recomputation | 2 h | **Applied** | +2 (innovation) |
 | No concurrency or latency evidence | Run parallel deliveries of one task ID and a latency benchmark against the 55-second budget, and record the output in `docs/CLAIMS.md` | 1–2 h | **Applied** (`npm run benchmark`, `tests/concurrency.test.ts`) | +3 (technical execution) |
-| No guided judge tour | One route that walks overview → task → receipt → proof ledger → local re-verification command | 2–3 h | No | +2 (product and UX) |
+| No guided judge tour | One route that walks overview → task → receipt → proof ledger → local re-verification command | 2–3 h | **Applied** (`/tour`; live probes, `GET /tour` → HTTP 200) | +2 (product and UX) |
 | No observed Kurier finalization | One practice task with `PROOF_SUBMIT_ENABLED=true` and a funded key; publish job id, transaction hash, and block | 1 h operator time | No | +2 (sponsor technology) |
 
 Deliberately left undone, and why:

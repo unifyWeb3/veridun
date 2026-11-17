@@ -12,6 +12,7 @@ operational dashboard.
 | --- | --- |
 | Live agent endpoint | `https://veridun-oxunify.vercel.app/agent` |
 | Live dashboard | `https://veridun-oxunify.vercel.app/` |
+| Judge tour (two minutes) | `https://veridun-oxunify.vercel.app/tour` |
 | Health | `https://veridun-oxunify.vercel.app/health` |
 | Repository | `https://github.com/unifyWeb3/veridun` |
 | Track | zkVerify Agent Games — Proof Gatekeeper |
@@ -20,6 +21,10 @@ operational dashboard.
 Machine-generated facts (circuit digests, VK hash, toolchain versions, live
 endpoint probe) live in [`docs/CLAIMS.md`](docs/CLAIMS.md) and are regenerated
 with `npm run claims`.
+
+**New here?** Open the [judge tour](https://veridun-oxunify.vercel.app/tour): five
+steps, each stating what it proves, reporting the live probe result, and giving
+a command you can run yourself. It also names what the tour does *not* prove.
 
 ---
 
@@ -143,6 +148,7 @@ content-type parsing, and raw-body semantics without the test-only dependency.
 | `GET` | `/api/task?task_id=…` | Task detail, policy checks, proof, signals, and attempts |
 | `GET` | `/api/receipt?task_id=…` | Re-verifiable receipt: exact signed response bytes, signature, envelope, checks, proof |
 | `GET` | `/api/proofs` | Proof and Kurier evidence ledger |
+| `GET` | `/tour` | Judge tour: five live probes, copyable commands, and the limits of what they prove |
 
 `/api/dashboard/summary` and `/api/tasks/:taskId` remain available as aliases
 and are mapped onto the canonical single-segment paths by `vercel.json`
@@ -300,9 +306,9 @@ src/api/                Fastify application, Vercel bridge, Node HTTP dispatcher
 src/agent/              policy engine, HMAC, prover, zkVerify verifier, Kurier client
 src/db/                 PostgreSQL pool, repository, migrations
 src/shared/protocol.ts  Zod schemas for the platform contract
-web/                    React operations console
-scripts/                circuit preparation, claims registry, preflight, migrations
-tests/                  unit, integration, and live-verifier tests
+web/                    React operations console (overview, tasks, proofs, judge tour)
+scripts/                circuit preparation, claims registry, preflight, benchmark, receipt tools
+tests/                  unit, integration, concurrency, and live-verifier tests
 docs/                   architecture, circuit notes, product brief, event rules, claims
 ```
 

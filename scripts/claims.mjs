@@ -160,6 +160,16 @@ async function liveProbe(baseUrl) {
     });
   }
 
+  // The judge tour is the reviewer's path through the deployment. It must be
+  // served by the live build, not just exist in the repository.
+  const tour = await fetch(`${base}/tour`, { signal: AbortSignal.timeout(30_000) });
+  const tourBody = await tour.text();
+  rows.push({
+    endpoint: 'GET /tour',
+    status: tour.status,
+    observed: `html=${tourBody.includes('<!doctype html>')} title=${tourBody.includes('Veridun') ? 'present' : 'missing'}`,
+  });
+
   return rows;
 }
 

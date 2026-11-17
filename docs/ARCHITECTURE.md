@@ -104,6 +104,7 @@ Append-only proof lifecycle evidence: generation, local verification, Kurier sub
 | `GET` | `/api/tasks` | Paginated task list with decision/reason/status filters |
 | `GET` | `/api/task?task_id=…` | Task detail, policy checks, proof, signals, and attempts |
 | `GET` | `/api/proofs` | Proof and Kurier evidence ledger |
+| `GET` | `/tour` | Judge tour: five live probes, copyable commands, and the limits of what they prove |
 
 `/api/dashboard/summary` and `/api/tasks/:taskId` are registered aliases for
 direct Fastify access. Vercel only routes one-segment `/api/*` paths to the
@@ -117,6 +118,8 @@ directly.
 2. `/tasks` — searchable task queue.
 3. `/tasks/:taskId` — full decision and evidence trail.
 4. `/proofs` — proof generation/finalization ledger.
+5. `/tour` — judge tour: five steps, each stating what it proves, reporting the
+   live probe result, and giving a copyable command.
 
 The dashboard reads real database state. It does not ship synthetic activity as if it were live.
 

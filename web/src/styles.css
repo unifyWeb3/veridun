@@ -1319,6 +1319,17 @@ tbody tr:hover {
   font-weight: 600;
 }
 
+/* The observation badge carries a live value such as
+   "HTTP 401 INVALID_SIGNATURE · RESPONSE SIGNED: YES". The global badge
+   keeps its text on one line, which overflows a narrow card, so the tour
+   scopes the exception to its own badge. */
+.tour-step__head .status-badge {
+  white-space: normal;
+  text-align: left;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .tour-step__proves {
   font-size: 13px;
   line-height: 1.65;
@@ -1430,6 +1441,11 @@ tbody tr:hover {
 
   .tour-step__number {
     padding-top: 0;
+  }
+
+  .tour-step__head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .tour-callout {

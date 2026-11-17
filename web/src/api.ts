@@ -597,6 +597,64 @@ function normalizeList<T>(raw: unknown, fields: readonly string[], normalizeItem
   };
 }
 
+/**
+ * Sends an unsigned envelope to the agent endpoint and reports what the
+ * service did with it.
+ *
+ * The request is deliberately invalid: the service must reject it with a
+ * signed `401` before the body is parsed. The probe touches no state, and it
+ * is how the judge tour demonstrates the raw-body contract against the live
+ * deployment instead of describing it.
+ */
+export async function probeUnsignedAgentRequest(
+  signal?: AbortSignal,
+): Promise<{ status: number; error: string | null; signed: boolean }> {
+  let response: Response;
+  try {
+    response = await fetch('/agent', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'agent-games.preflight.v1' }),
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw new ApiError('The Veridun API could not be reached.', 0);
+  }
+
+  const body = (await response.json().catch(() => null)) as unknown;
+  const root = isRecord(body) ? body : {};
+  return {
+    status: response.status,
+    error: stringAt(root, ['error']),
+    signed: response.headers.has('x-agent-games-signature'),
+  };
+}
+
+/**
+ * Confirms that the receipt surface is live by asking for a task that cannot
+ * exist. A documented `404` proves the route and its error contract are
+ * deployed; a missing route would answer differently.
+ */
+export async function probeReceiptEndpoint(
+  signal?: AbortSignal,
+): Promise<{ status: number; error: string | null }> {
+  let response: Response;
+  try {
+    response = await fetch('/api/receipt?task_id=veridun-tour-probe', {
+      headers: { Accept: 'application/json' },
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw new ApiError('The Veridun API could not be reached.', 0);
+  }
+
+  const body = (await response.json().catch(() => null)) as unknown;
+  const root = isRecord(body) ? body : {};
+  return { status: response.status, error: stringAt(root, ['error']) };
+}
+
 export async function getHealth(signal?: AbortSignal): Promise<HealthStatus> {
   const raw = await requestJson('/health', signal);
   const root = isRecord(raw) ? raw : {};

@@ -3,6 +3,7 @@ export type Route =
   | { name: 'tasks' }
   | { name: 'task-detail'; taskId: string }
   | { name: 'proofs' }
+  | { name: 'tour' }
   | { name: 'not-found' };
 
 export function parseRoute(pathname: string): Route {
@@ -10,6 +11,7 @@ export function parseRoute(pathname: string): Route {
   if (path === '/' || path === '/overview') return { name: 'overview' };
   if (path === '/tasks') return { name: 'tasks' };
   if (path === '/proofs') return { name: 'proofs' };
+  if (path === '/tour') return { name: 'tour' };
 
   const taskMatch = /^\/tasks\/([^/]+)$/.exec(path);
   if (taskMatch) {

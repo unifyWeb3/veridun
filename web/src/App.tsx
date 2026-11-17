@@ -12,6 +12,8 @@ import {
   getReceipt,
   getTask,
   getTasks,
+  probeReceiptEndpoint,
+  probeUnsignedAgentRequest,
 } from './api';
 import {
   DecisionBadge,
@@ -28,6 +30,7 @@ import {
   ProofStageBadges,
   StatusBadge,
   Timestamp,
+  type Tone,
 } from './components';
 import { AppLink } from './navigation';
 import { navigate, parseRoute, type Route } from './router';
@@ -290,6 +293,22 @@ function OverviewRoute() {
           </section>
 
           <EvidenceRail summary={summary} health={healthState.data} />
+
+          <section className="tour-callout" aria-labelledby="tour-callout-heading">
+            <div>
+              <p className="eyebrow">Evaluating Veridun</p>
+              <h2 id="tour-callout-heading">Take the two-minute judge tour</h2>
+              <p>
+                Five steps from the live deployment to the evidence: the signed
+                protocol, one task producing one stored response, the proof
+                attached to each decision, and the offline command that
+                re-verifies a decision receipt.
+              </p>
+            </div>
+            <AppLink className="button button--primary" href="/tour">
+              Start the tour
+            </AppLink>
+          </section>
 
           <section className="split-section" aria-labelledby="reasons-heading">
             <div className="panel">
@@ -806,6 +825,255 @@ function EvidenceMark({
   return <StatusBadge tone="neutral">Not reported</StatusBadge>;
 }
 
+interface TourStep {
+  number: string;
+  title: string;
+  proves: string;
+  observation: string;
+  tone: Tone;
+  route?: { href: string; label: string };
+  command?: { label: string; value: string };
+}
+
+function CommandBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="command-block">
+      <div className="command-block__head">
+        <span className="command-block__label">{label}</span>
+        <CopyButton value={value} label="Copy" />
+      </div>
+      <code className="command-block__code">{value}</code>
+    </div>
+  );
+}
+
+function TourStepCard({ step }: { step: TourStep }) {
+  return (
+    <li className="tour-step">
+      <span className="tour-step__number" aria-hidden="true">{step.number}</span>
+      <div className="tour-step__body">
+        <div className="tour-step__head">
+          <h3>{step.title}</h3>
+          <StatusBadge tone={step.tone}>{step.observation}</StatusBadge>
+        </div>
+        <p className="tour-step__proves">{step.proves}</p>
+        <div className="tour-step__actions">
+          {step.route ? (
+            <AppLink className="button button--secondary" href={step.route.href}>
+              {step.route.label}
+            </AppLink>
+          ) : null}
+          {step.command ? (
+            <span className="tour-step__command">
+              <code>{step.command.value}</code>
+              <CopyButton value={step.command.value} label="Copy" />
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function TourRoute() {
+  const healthState = useLiveData((signal) => getHealth(signal), []);
+  const summaryState = useLiveData((signal) => getDashboardSummary(signal), []);
+  const tasksState = useLiveData((signal) => getTasks({ limit: 1, offset: 0 }, signal), []);
+  const unsignedState = useLiveData((signal) => probeUnsignedAgentRequest(signal), []);
+  const receiptState = useLiveData((signal) => probeReceiptEndpoint(signal), []);
+
+  const origin = window.location.origin;
+  const health = healthState.data;
+  const summary = summaryState.data;
+  const taskCount = summary?.decisions.total ?? 0;
+  const proofCount = summary?.proofs.total ?? 0;
+  const verifiedProofs = summary?.proofs.localVerified ?? 0;
+  const firstTask = tasksState.data?.items[0] ?? null;
+
+  const healthReady = health?.ok === true && health.database === 'ready';
+  const unsigned = unsignedState.data;
+  const receiptProbe = receiptState.data;
+
+  const steps: TourStep[] = [
+    {
+      number: '01',
+      title: 'The service is live and its ledger is durable',
+      proves:
+        'The deployed agent answers unauthenticated probes, and every value on this page comes from the PostgreSQL ledger rather than a fixture.',
+      observation: healthReady
+        ? `Database ready · proof submission ${health?.proofSubmission ?? 'unknown'}`
+        : healthState.loading
+          ? 'Checking the service'
+          : 'Service not confirmed',
+      tone: healthReady ? 'positive' : healthState.loading ? 'neutral' : 'critical',
+      route: { href: '/', label: 'Open the overview' },
+      command: { label: 'Health probe', value: `curl ${origin}/health` },
+    },
+    {
+      number: '02',
+      title: 'Unsigned requests are refused before parsing',
+      proves:
+        'The HMAC is verified over the exact request bytes before JSON.parse runs, so an unsigned or tampered body never reaches the policy engine or the database. The response is still signed.',
+      observation: unsigned
+        ? `HTTP ${unsigned.status} ${unsigned.error ?? ''} · response signed: ${unsigned.signed ? 'yes' : 'no'}`
+        : unsignedState.loading
+          ? 'Probing the endpoint'
+          : 'Probe failed',
+      tone:
+        unsigned && unsigned.status === 401 && unsigned.signed
+          ? 'positive'
+          : unsignedState.loading
+            ? 'neutral'
+            : 'critical',
+      command: {
+        label: 'Live probe',
+        value: `curl -i -X POST ${origin}/agent -H 'content-type: application/json' --data '{"type":"agent-games.preflight.v1"}'`,
+      },
+    },
+    {
+      number: '03',
+      title: 'One task produces one stored response',
+      proves:
+        'Concurrent or retried deliveries of the same task ID are claimed transactionally: the decision is proved once, and every caller receives the identical signed bytes. The benchmark measures this against a real PostgreSQL server.',
+      observation:
+        taskCount > 0
+          ? `${taskCount} task${taskCount === 1 ? '' : 's'} in the ledger`
+          : 'No task scored yet',
+      tone: taskCount > 0 ? 'positive' : 'neutral',
+      route: { href: '/tasks', label: 'Open the task ledger' },
+      command: { label: 'Concurrency benchmark', value: 'npm run benchmark' },
+    },
+    {
+      number: '04',
+      title: 'Every provable decision carries its own proof',
+      proves:
+        'A provable task returns a Groth16 proof against the official zkVerify circuit with 13 public signals, verified locally against the exported verification key before it is returned or submitted.',
+      observation:
+        proofCount > 0
+          ? `${verifiedProofs} of ${proofCount} proof records locally verified`
+          : 'No proof records yet',
+      tone: proofCount > 0 ? (verifiedProofs === proofCount ? 'positive' : 'warning') : 'neutral',
+      route: { href: '/proofs', label: 'Open the proof ledger' },
+    },
+    {
+      number: '05',
+      title: 'Any decision can be re-verified offline',
+      proves:
+        'A receipt carries the exact signed response bytes, the signature over them, the envelope, the policy checks, and the proof — enough to re-derive the decision and re-verify the proof without trusting this service.',
+      observation: receiptProbe
+        ? `Receipt surface answered HTTP ${receiptProbe.status} ${receiptProbe.error ?? ''}`
+        : receiptState.loading
+          ? 'Probing the receipt surface'
+          : 'Probe failed',
+      tone: receiptProbe && receiptProbe.status === 404 ? 'positive' : receiptState.loading ? 'neutral' : 'critical',
+      route: firstTask
+        ? { href: `/tasks/${encodeURIComponent(firstTask.id)}`, label: 'Open a task receipt' }
+        : undefined,
+      command: {
+        label: 'Offline verification',
+        value: 'npm run receipt:verify -- docs/samples/sample-receipt.json',
+      },
+    },
+  ];
+
+  const commands = [
+    {
+      label: 'Re-verify a decision receipt offline',
+      value: 'npm run receipt:verify -- docs/samples/sample-receipt.json',
+    },
+    {
+      label: 'Re-run the concurrency and latency benchmark',
+      value: 'npm run benchmark',
+    },
+    {
+      label: 'Regenerate the factual registry from the live deployment',
+      value: `npm run claims -- --live ${origin}`,
+    },
+    {
+      label: 'Fetch the receipt of a task the service processed',
+      value: `curl "${origin}/api/receipt?task_id=<task-id>"`,
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Judge tour"
+        title="Five steps to the evidence"
+        description="About two minutes. Each step states what it proves, what this deployment reports right now, and how to check it yourself."
+        actions={
+          <button
+            className="button button--primary"
+            type="button"
+            onClick={() => {
+              healthState.reload();
+              summaryState.reload();
+              tasksState.reload();
+              unsignedState.reload();
+              receiptState.reload();
+            }}
+          >
+            Re-check the deployment
+          </button>
+        }
+      />
+
+      {healthState.error ? (
+        <ErrorState message={healthState.error} onRetry={healthState.reload} />
+      ) : null}
+      {summaryState.error ? (
+        <ErrorState message={summaryState.error} onRetry={summaryState.reload} />
+      ) : null}
+
+      <ol className="tour-steps">
+        {steps.map((step) => (
+          <TourStepCard key={step.number} step={step} />
+        ))}
+      </ol>
+
+      <section className="panel" aria-labelledby="tour-commands-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Run it yourself</p>
+            <h2 id="tour-commands-heading">Four commands, no account needed</h2>
+          </div>
+        </div>
+        <div className="command-grid">
+          {commands.map((command) => (
+            <CommandBlock key={command.label} label={command.label} value={command.value} />
+          ))}
+        </div>
+      </section>
+
+      <section className="panel" aria-labelledby="tour-limits-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Honest limits</p>
+            <h2 id="tour-limits-heading">What this tour does not prove</h2>
+          </div>
+        </div>
+        <ul className="tour-limits">
+          <li>
+            No official practice round has been scored yet, so the ledger totals above are
+            zero. The committed sample receipt is produced by the same code path and is
+            labelled as a local sample, not as a platform-signed response.
+          </li>
+          <li>
+            A proof is described as <strong>locally verified</strong> until the platform
+            confirms it in a scored round. Local verification and platform verification
+            are separate claims and are never merged.
+          </li>
+          <li>
+            Kurier finalization evidence appears in the proof ledger once a task has been
+            submitted on-chain. Until then the proof stage is shown as submitted or
+            finalized only when the chain says so.
+          </li>
+        </ul>
+      </section>
+    </>
+  );
+}
+
 function NotFoundRoute() {
   return (
     <section className="not-found">
@@ -824,6 +1092,7 @@ function Navigation({ route }: { route: Route }) {
     { href: '/', label: 'Overview', active: route.name === 'overview' },
     { href: '/tasks', label: 'Tasks', active: route.name === 'tasks' || route.name === 'task-detail' },
     { href: '/proofs', label: 'Proof ledger', active: route.name === 'proofs' },
+    { href: '/tour', label: 'Judge tour', active: route.name === 'tour' },
   ];
 
   return (
@@ -866,6 +1135,8 @@ export function App() {
         return <TaskDetailRoute taskId={route.taskId} />;
       case 'proofs':
         return <ProofsRoute />;
+      case 'tour':
+        return <TourRoute />;
       case 'not-found':
         return <NotFoundRoute />;
     }
